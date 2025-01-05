@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}View Jobs{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center my-4">All Available Jobs</h1>
+
+    <!-- Search Bar -->
+    <form method="get" action="{% url 'view_jobs' %}" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="search" class="form-control" placeholder="Search jobs by any field" value="{{ request.GET.search }}">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+
+    {% if jobs %}
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Company Name</th>
+                        <th>Job Description</th>
+                        <th>Role</th>
+                        <th>Industry Type</th>
+                        <th>Department</th>
+                        <th>Employment Type</th>
+                        <th>Role Category</th>
+                        <th>Education</th>
+                        <th>Skills</th>
+                        <th>Experience</th>
+                        <th>Location</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ job.company_name }}</td>
+                            <td>{{ job.job_description }}</td>
+                            <td>{{ job.role }}</td>
+                            <td>{{ job.industry_type }}</td>
+                            <td>{{ job.department }}</td>
+                            <td>{{ job.employment_type }}</td>
+                            <td>{{ job.role_category }}</td>
+                            <td>{{ job.education }}</td>
+                            <td>{{ job.skills }}</td>
+                            <td>{{ job.experience }}</td>
+                            <td>{{ job.location }}</td>
+                            <td>
+                                <button class="btn btn-sm {% if job.id in applied_job_ids %}btn-secondary disabled{% else %}btn-success{% endif %} apply-btn"
+                                        data-job-id="{{ job.id }}">
+                                    {% if job.id in applied_job_ids %}
+                                        Already Applied
+                                    {% else %}
+                                        Apply
+                                    {% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-center text-muted">No jobs available at the moment. Please check back later.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".apply-btn").forEach((button) => {
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            const jobId = this.getAttribute("data-job-id");
+
+            // Fetch CSRF token from the meta tag
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            fetch(`/apply-job/${jobId}/`, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest", // Indicating an AJAX request
+                    "X-CSRFToken": csrfToken // Including the CSRF token in the request header
+                },
+            })
+            .then((response) => {
+                if (response.ok) {
+                    this.textContent = "Already Applied";
+                    this.classList.replace("btn-success", "btn-secondary");
+                    this.classList.add("disabled");
+                } else {
+                    console.error("Failed to apply for the job.");
+                }
+            })
+            .catch((error) => console.error("Error:", error));
+        });
+    });
+});
+
+</script>
+{% endblock %}

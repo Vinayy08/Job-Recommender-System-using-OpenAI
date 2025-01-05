@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Compatibility Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4" style="font-weight: 600; color: #0d1116;">Detailed Compatibility Report</h1>
+    <div class="text-center">
+        <h3 style="color: #2b3847;">{{ company_name }} and {{ employee_name }}</h3>
+    </div>
+
+    <div class="mt-5">
+        <h4>1. Strengths:</h4>
+        <p>{{ detailed_report|linebreaks }}</p>
+    </div>
+    <hr>
+    <div>
+        <h4>2. Gap Analysis:</h4>
+        <p>{{ detailed_report|linebreaks }}</p>
+    </div>
+    <hr>
+    <div>
+        <h4>3. Areas for Improvement:</h4>
+        <p>{{ detailed_report|linebreaks }}</p>
+    </div>
+    <hr>
+    <div>
+        <h4>4. Recommendations:</h4>
+        <p>{{ detailed_report|linebreaks }}</p>
+    </div>
+
+    <div class="mt-4 text-center">
+        <a href="?download=1" class="btn btn-success">Download as PDF</a>
+        <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-primary">Back to Compatibility Scores</a>
+    </div>
+</div>
+
+{% endblock %}

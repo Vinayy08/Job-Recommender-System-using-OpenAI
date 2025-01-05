@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}My Applications{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4 fw-bold">My Job Applications</h1>
+    {% if applications %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Company Name</th>
+                    <th>Job Role</th>
+                    <th>Job Description</th>
+                    <th>Skills Required</th>
+                    <th>Applied On</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for application in applications %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ application.job.company_name }}</td>
+                        <td>{{ application.job.role }}</td>
+                        <td>{{ application.job.job_description }}</td>
+                        <td>{{ application.job.skills }}</td>
+                        <td>{{ application.applied_on|date:"d M Y, h:i A" }}</td>
+                        <td>
+                            <form action="{% url 'delete_application_employee' application.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete Application</button>
+                            </form>                            
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-center text-muted">You have not applied to any jobs yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}View Compatibility Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center" style="font-weight: bold; color: #4b6584;">View Compatibility Report</h1>
+    <p class="text-muted text-center">Detailed compatibility scores for the selected job: <strong>{{ job.company_name }}</strong>.</p>
+
+    <!-- Clustered Bar Chart -->
+    <div class="mt-4 text-center">
+        <h2 style="font-weight: bold; color: #4b6584;">Compatibility Scores</h2>
+        <img src="{{ bar_chart_path }}" alt="Clustered Bar Chart" class="img-fluid border border-secondary" style="border-radius: 10px; margin-top: 20px;">
+    </div>
+
+    <!-- Similarity Matrix -->
+    <div class="table-responsive mt-5">
+        <h3 style="font-weight: bold; color: #4b6584;">Similarity Matrix</h3>
+        <table class="table table-hover table-bordered align-middle" style="background-color: #f8f9fa; border-radius: 10px;">
+            {{ similarity_matrix|safe }}
+        </table>
+    </div>
+</div>
+{% endblock %}

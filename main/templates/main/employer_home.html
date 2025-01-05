@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-primary text-white text-center">
+            <h2>Welcome, {{ employer_name }}!</h2>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Your Company Details</h5>
+            <p class="card-text">
+                <strong>Company Name:</strong> {{ company_name }}<br>
+                <strong>Company Location:</strong> {{ company_location }}<br>
+                <strong>Email:</strong> {{ email }}<br>
+                <strong>Contact Number:</strong> {{ contact_number }}
+            </p>
+            <div class="alert alert-info">
+                "We are glad to have you on board! Explore your dashboard to manage your job postings and view insights."
+            </div>
+            <a href="{% url 'employer_dashboard' %}" class="btn btn-success">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

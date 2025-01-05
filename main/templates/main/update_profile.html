@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Profile{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4 fw-bold">Update Your Profile</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="post" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light">
+                {% csrf_token %}
+                
+                <!-- Name -->
+                <div class="mb-3">
+                    <label for="name" class="form-label fw-bold">Name</label>
+                    <input type="text" name="name" id="name" value="{{ user.get_full_name }}" class="form-control" placeholder="Enter your name">
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold">Email</label>
+                    <input type="email" name="email" id="email" value="{{ user.email }}" class="form-control" placeholder="Enter your email">
+                </div>
+
+                <!-- Contact Number -->
+                <div class="mb-3">
+                    <label for="contact_number" class="form-label fw-bold">Contact Number</label>
+                    <input type="text" name="contact_number" id="contact_number" value="{{ user_profile.contact_number }}" class="form-control" placeholder="Enter your contact number">
+                </div>
+
+                <!-- Education -->
+                <div class="mb-3">
+                    <label for="education" class="form-label fw-bold">Education</label>
+                    <textarea name="education" id="education" class="form-control" rows="3" placeholder="Enter your education details">{{ user_profile.education }}</textarea>
+                </div>
+
+                <!-- Skills -->
+                <div class="mb-3">
+                    <label for="skills" class="form-label fw-bold">Skills</label>
+                    <textarea name="skills" id="skills" class="form-control" rows="3" placeholder="Enter your skills">{{ user_profile.skills }}</textarea>
+                </div>
+
+                <!-- Links -->
+                <div class="mb-3">
+                    <label for="links" class="form-label fw-bold">Links</label>
+                    <textarea name="links" id="links" class="form-control" rows="3" placeholder="Add links (e.g., LinkedIn, GitHub, Portfolio)">{{ user_profile.links }}</textarea>
+                </div>
+
+                <!-- Experience in Years -->
+                <div class="mb-3">
+                    <label for="experience_years" class="form-label fw-bold">Experience in Years</label>
+                    <input type="number" name="experience_years" id="experience_years" value="{{ user_profile.experience_years }}" class="form-control" placeholder="Enter your experience in years">
+                </div>
+
+
+                <!-- Experience/Projects -->
+                <div class="mb-3">
+                    <label for="experience_projects" class="form-label fw-bold">Experience / Projects</label>
+                    <textarea name="experience_projects" id="experience_projects" class="form-control" rows="4" placeholder="Describe your experience or projects">{{ user_profile.experience_projects }}</textarea>
+                </div>
+
+                <!-- Resume -->
+                <div class="mb-3">
+                    <label for="resume" class="form-label fw-bold">Upload Resume</label>
+                    <input type="file" name="resume" id="resume" class="form-control" accept=".pdf,.doc,.docx">
+                    <small class="form-text text-muted">Upload your updated resume. This will replace the existing one.</small>
+                </div>
+
+                <!-- Change Password -->
+                <div class="mb-3">
+                    <label for="old_password" class="form-label fw-bold">Old Password</label>
+                    <input type="password" name="old_password" id="old_password" class="form-control" placeholder="Enter old password">
+                </div>
+                <div class="mb-3">
+                    <label for="new_password" class="form-label fw-bold">New Password</label>
+                    <input type="password" name="new_password" id="new_password" class="form-control" placeholder="Enter new password">
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

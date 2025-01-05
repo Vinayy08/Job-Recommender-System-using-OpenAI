@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment variables and secrets
+.env
+job_recommender/settings_secret.py
+
+# Database files
+db.sqlite3
+
+# Static and media files
+media/
+resumes/
+reports/
+compatibility_heatmap.png
+compatibility_report.csv
+
+# Static files generated during collectstatic
+staticfiles/
+staticfiles_collected/
+
+# Logs
+*.log
+
+# Virtual environments
+venv/
+env/
+
+# VS Code-specific files
+.vscode/
+
+# IDE-specific files
+.idea/
+*.iml
+
+# Node.js dependencies (if applicable)
+node_modules/
+
+# Django specific
+*.pot
+*.pyc
+migrations/  # Exclude migration files (optional, if not needed in version control)
+
+# Temporary files and cache
+cache/
+*.bak
+*.swp
+*.tmp

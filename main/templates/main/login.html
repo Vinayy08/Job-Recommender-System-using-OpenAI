@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh; background-color: #f8f9fa;">
+    <div class="card shadow-lg p-5" style="width: 100%; max-width: 400px; border-radius: 15px; background-color: #ffffff;">
+        <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">Welcome Back</h2>
+        <p class="text-center text-muted mb-4">Please log in to your account</p>
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+        <form method="POST" action="" autocomplete="off">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="username" class="form-label" style="font-weight: 500;">Username</label>
+                {{ form.username|add_class:"form-control py-2 px-3 rounded-pill border-1 shadow-sm" }}
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label" style="font-weight: 500;">Password</label>
+                {{ form.password|add_class:"form-control py-2 px-3 rounded-pill border-1 shadow-sm" }}
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill" style="font-weight: 600;">Log In</button>
+        </form>
+        <div class="text-center mt-4">
+            <p class="text-muted mb-2">Don't have an account?</p>
+            <div class="dropdown d-inline">
+                <button class="btn btn-outline-secondary dropdown-toggle py-2 px-4 rounded-pill" type="button" id="registerDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Register Here
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="registerDropdown" style="border-radius: 10px; overflow: hidden;">
+                    <li><a class="dropdown-item py-2" href="{% url 'employer_register' %}">New Employer</a></li>
+                    <li><a class="dropdown-item py-2" href="{% url 'employee_register' %}">New Employee</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

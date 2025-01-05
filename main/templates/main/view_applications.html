@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}View Applications{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center">
+        <h1 class="mb-4" style="font-weight: 600; color: #4b6584;">View Applications</h1>
+        <p style="font-size: 1.1rem; color: #778ca3;">Manage and review job applications submitted by employees.</p>
+    </div>
+
+    {% if applications %}
+    <table class="table table-striped mt-4">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Employee Name</th>
+                <th scope="col">Contact</th>
+                <th scope="col">Email</th>
+                <th scope="col">Skills</th>
+                <th scope="col">Resume</th>
+                <th scope="col">Company Name</th>
+                <th scope="col">Applied At</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for application in applications %}
+            <tr>
+                <td>{{ application.user.get_full_name }}</td>
+                <td>{{ application.user.userprofile.contact_number }}</td>
+                <td>{{ application.user.email }}</td>
+                <td>{{ application.user.userprofile.skills }}</td>
+                <td>
+                    {% if application.resume %}
+                        <a href="{{ application.resume.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            View Resume
+                        </a>
+                    {% else %}
+                        <span class="text-muted">No Resume Uploaded</span>
+                    {% endif %}
+                </td>
+                <td>{{ application.job.company_name }}</td>
+                <td>{{ application.applied_on|date:"d M Y, H:i" }}</td>
+                <td>
+                    <form action="{% url 'delete_application_employer' application.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete Application</button>
+                    </form>                    
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info text-center mt-4" role="alert">
+        No applications available to review at the moment.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

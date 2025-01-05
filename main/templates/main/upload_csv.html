@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Upload CSV{% endblock %}
+{% block content %}
+<h2>Upload Job Listings</h2>
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+{% endblock %}

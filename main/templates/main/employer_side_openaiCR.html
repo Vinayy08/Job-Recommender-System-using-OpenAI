@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Detailed Compatibility Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4" style="font-weight: 600; color: #0d1116;">Detailed Compatibility Report</h1>
+    <p class="text-muted text-center mb-4">A detailed analysis of the compatibility between the selected job and employee.</p>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="card-title mb-0">Job Details</h4>
+        </div>
+        <div class="card-body">
+            <p><strong>Job:</strong> {{ job }}</p>
+            <p><strong>Employee:</strong> {{ employee }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="card-title mb-0">Compatibility Details</h4>
+        </div>
+        <div class="card-body">
+            <pre style="white-space: pre-wrap; font-family: 'Courier New', Courier, monospace;">{{ compatibility_details }}</pre>
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="?download=true" class="btn btn-success">Download as PDF</a>
+        <a href="{% url 'employer_side_openaiCS' %}" class="btn btn-outline-primary">Back to Compatibility Scores</a>
+    </div>    
+</div>
+{% endblock %}

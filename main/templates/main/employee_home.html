@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Employee Home{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center">
+        <h1 class="mb-4" style="font-weight: 600; color: #000000;">Welcome, {{ user.username }}!</h1>
+        <p style="font-size: 1.1rem; color: #262729;">This is your personalized employee home page.</p>
+    </div>
+
+    <div class="card mx-auto mt-4" style="max-width: 600px; background-color: #f8f9fa; border-radius: 10px;">
+        <div class="card-body">
+            <h3 class="card-title text-center" style="font-weight: 600; color: #4b6584;">Your Details</h3>
+            <ul class="list-group list-group-flush mt-3">
+                <li class="list-group-item">
+                    <strong>Name:</strong> {{ user.get_full_name|default:user.username }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Email:</strong> {{ user.email }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Contact:</strong> {{ user.userprofile.contact_number|default:"Not Provided" }}
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center gap-3 my-4">
+        <a href="{% url 'employee_dashboard' %}" class="btn btn-outline-primary btn-lg">
+            Go to Dashboard
+        </a>
+        <a href="{% url 'view_employee_applications' %}" class="btn btn-outline-success btn-lg">
+            View My Applications
+        </a>
+    </div>
+</div>
+{% endblock %}

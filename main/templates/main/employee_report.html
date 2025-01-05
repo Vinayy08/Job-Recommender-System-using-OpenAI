@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Employee Compatibility Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Employee Compatibility Report</h1>
+
+    <div class="mt-4">
+        <h3>Recommended Jobs</h3>
+        {% for employee, jobs in recommendations.items %}
+            <h4>{{ employee }}</h4>
+            <ul>
+                {% for job in jobs %}
+                    <li>{{ job.company_name }} - {{ job.role }}</li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <h3>Compatibility Distribution</h3>
+        <img src="{{ pie_chart_path }}" alt="Pie Chart" class="img-fluid">
+    </div>
+</div>
+{% endblock %}

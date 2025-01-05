@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Employee Register{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh; margin-top: 60px;">
+    <div class="card shadow-lg p-4" style="width: 100%; max-width: 500px; border-radius: 10px; background-color: #f9f9f9;">
+        <h2 class="text-center mb-4 text-primary">Employee Registration</h2>
+        <form method="POST" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            
+            <!-- Username Field -->
+            <div class="mb-3">
+                <label for="username" class="form-label">Name</label>
+                <input type="text" name="username" id="username" class="form-control" 
+                       value="{{ form.username.value|default:'' }}" 
+                       placeholder="Enter your full name" 
+                       aria-required="true" required>
+                {% if form.username.errors %}
+                    <div class="text-danger mt-1">{{ form.username.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Email Field -->
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" name="email" id="email" class="form-control" 
+                       value="{{ form.email.value|default:'' }}" 
+                       placeholder="Enter your email address" 
+                       aria-required="true" required>
+                {% if form.email.errors %}
+                    <div class="text-danger mt-1">{{ form.email.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Contact Number Field -->
+            <div class="mb-3">
+                <label for="contact_number" class="form-label">Contact Number</label>
+                <input type="text" name="contact_number" id="contact_number" class="form-control" 
+                       value="{{ form.contact_number.value|default:'' }}" 
+                       placeholder="Enter your contact number" 
+                       aria-required="true" required>
+                {% if form.contact_number.errors %}
+                    <div class="text-danger mt-1">{{ form.contact_number.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" name="password" id="password" class="form-control" 
+                       placeholder="Choose a secure password" 
+                       aria-required="true" required>
+                {% if form.password.errors %}
+                    <div class="text-danger mt-1">{{ form.password.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Resume Upload -->
+            <div class="mb-3">
+                <label for="resume" class="form-label">Upload Resume</label>
+                <input type="file" name="resume" id="resume" class="form-control" 
+                       accept=".pdf,.docx" aria-required="true" required>
+                <div class="form-text text-muted">Accepted formats: PDF, DOCX.</div>
+                {% if form.resume.errors %}
+                    <div class="text-danger mt-1">{{ form.resume.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary w-100" style="background-color: #007bff; border: none;">
+                Register
+            </button>
+        </form>
+        <div class="text-center mt-3">
+            <a href="{% url 'login' %}" class="btn btn-link">Already Registered? Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

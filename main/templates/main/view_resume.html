@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}View Resume{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">View Your Resume</h1>
+    
+    {% if resume_url %}
+        <div class="text-center mt-4">
+            <iframe src="{{ resume_url }}" width="100%" height="600px" style="border: 1px solid #ccc;"></iframe>
+        </div>
+        <div class="text-center mt-4">
+            <a href="{{ resume_url }}" class="btn btn-primary" target="_blank">Download Resume</a>
+        </div>
+    {% else %}
+        <p class="text-center text-danger mt-4">No resume uploaded yet. Please update your profile to upload a resume.</p>
+        <div class="text-center mt-4">
+            <a href="{% url 'update_profile' %}" class="btn btn-secondary">Update Profile</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

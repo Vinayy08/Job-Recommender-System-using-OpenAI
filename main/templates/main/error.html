@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Error{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <h1 class="text-danger">Error</h1>
+    <p class="text-muted">{{ error_message }}</p>
+    <a href="{% url dashboard_url|default:'employer_dashboard' %}" class="btn btn-outline-primary mt-3">Back to Dashboard</a>
+</div>
+{% endblock %}

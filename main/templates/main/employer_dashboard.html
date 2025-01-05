@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Employer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center">
+        <h1 class="mb-4" style="font-weight: 600; color: black;">Employer Dashboard</h1>
+        <p style="font-size: 1.1rem; color: black;">Manage your job postings and view applicants in a streamlined interface.</p>
+    </div>
+
+    <!-- Button Group -->
+    <div class="d-flex justify-content-center gap-2 my-3">
+        <a href="{% url 'add_job' %}" class="btn btn-outline-primary fs-6 fw-semibold px-3 py-2">Post a New Job</a>
+        <a href="{% url 'upload_csv' %}" class="btn btn-outline-secondary fs-6 fw-semibold px-3 py-2">Upload Job Listings via CSV</a>
+        <a href="{% url 'generate_compatibility_report' %}" class="btn btn-outline-success fs-6 fw-semibold px-3 py-2">Generate Compatibility Report</a>
+        <a href="{% url 'view_all_applications' %}" class="btn btn-outline-primary fs-6 fw-semibold px-3 py-2">View All Applications</a>
+        <a href="{% url 'employer_side_openaiCS' %}" class="btn btn-outline-success fs-6 fw-semibold px-3 py-2">Generate Compatibility Report using OpenAI</a>
+    </div>
+
+
+    <!-- Search Bar -->
+    <form method="get" action="{% url 'employer_dashboard' %}" class="my-4">
+        <div class="input-group">
+            <input 
+                type="text" 
+                name="search" 
+                class="form-control" 
+                placeholder="Search jobs (e.g., Role, Location, Skills)" 
+                value="{{ search_query }}" 
+                style="border-radius: 25px; padding: 10px 15px; font-size: 1rem;">
+            <button class="btn btn-primary px-4" type="submit" style="border-radius: 25px; font-size: 1rem;">
+                Search
+            </button>
+        </div>
+    </form>
+
+    <h2 class="mt-5 text-center" style="font-weight: 500; color: #252c35;">Your Posted Jobs</h2>
+    {% if posted_jobs %}
+        <div class="table-responsive my-4">
+            <table class="table table-hover table-bordered align-middle" style="background-color: #f8f9fa; border-radius: 10px;">
+                <thead style="background-color: #32383f; color: #ffffff;">
+                    <tr>
+                        <th>#</th>
+                        <th>Company Name</th>
+                        <th>Job Description</th>
+                        <th>Role</th>
+                        <th>Industry Type</th>
+                        <th>Department</th>
+                        <th>Employment Type</th>
+                        <th>Role Category</th>
+                        <th>Education</th>
+                        <th>Skills</th>
+                        <th>Experience</th>
+                        <th>Location</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in posted_jobs %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ job.company_name }}</td>
+                            <td style="word-wrap: break-word;">{{ job.job_description }}</td>
+                            <td>{{ job.role }}</td>
+                            <td>{{ job.industry_type }}</td>
+                            <td>{{ job.department }}</td>
+                            <td>{{ job.employment_type }}</td>
+                            <td>{{ job.role_category }}</td>
+                            <td>{{ job.education }}</td>
+                            <td style="word-wrap: break-word;">{{ job.skills }}</td>
+                            <td>{{ job.experience }}</td>
+                            <td>{{ job.location }}</td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{% url 'edit_job' job.id %}" class="btn btn-warning btn-sm">Edit Job</a>
+                                    <a href="{% url 'delete_job' job.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete Job</a>
+                                    <a href="{% url 'view_applications' job.id %}" class="btn btn-primary btn-sm">View Applications</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if posted_jobs.paginator.num_pages > 1 %}
+            <div class="pagination mt-4 d-flex justify-content-between align-items-center">
+                {% if posted_jobs.has_previous %}
+                    <a href="?page={{ posted_jobs.previous_page_number }}" class="btn btn-outline-secondary">Previous</a>
+                {% else %}
+                    <span class="btn btn-outline-secondary disabled">Previous</span>
+                {% endif %}
+
+                <span>Page {{ posted_jobs.number }} of {{ posted_jobs.paginator.num_pages }}</span>
+
+                {% if posted_jobs.has_next %}
+                    <a href="?page={{ posted_jobs.next_page_number }}" class="btn btn-outline-secondary">Next</a>
+                {% else %}
+                    <span class="btn btn-outline-secondary disabled">Next</span>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <p class="text-center text-muted mt-5">No jobs posted yet. <a href="{% url 'add_job' %}" class="text-primary">Post your first job here</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}

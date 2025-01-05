@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Top 10 Job Recommendations{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Top 10 Job Recommendations</h1>
+
+    {% if recommended_jobs %}
+        <div class="table-responsive mt-4">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Company Name</th>
+                        <th>Role</th>
+                        <th>Match Score</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recommendation in recommended_jobs %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ recommendation.company_name }}</td>
+                            <td>{{ recommendation.role }}</td>
+                            <td>{{ recommendation.compatibility_score }}%</td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button class="btn btn-sm {% if recommendation.id in applied_job_ids %}btn-secondary disabled{% else %}btn-success{% endif %} apply-btn"
+                                            data-job-id="{{ recommendation.id }}">
+                                        {% if recommendation.id in applied_job_ids %}
+                                            Already Applied
+                                        {% else %}
+                                            Apply
+                                        {% endif %}
+                                    </button>
+                                    <a href="{% url 'job_detail' recommendation.id %}" class="btn btn-sm btn-info">
+                                        View Details
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-center">No recommendations available at this time.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".apply-btn").forEach((button) => {
+            button.addEventListener("click", function (e) {
+                e.preventDefault();
+                const jobId = this.getAttribute("data-job-id");
+                fetch(`/apply-job/${jobId}/`, {
+                    method: "GET",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                })
+                .then((response) => {
+                    if (response.ok) {
+                        this.textContent = "Already Applied";
+                        this.classList.replace("btn-success", "btn-secondary");
+                        this.classList.add("disabled");
+                    }
+                })
+                .catch((error) => console.error("Error:", error));
+            });
+        });
+    });
+</script>
+{% endblock %}

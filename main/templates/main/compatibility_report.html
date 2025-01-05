@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compatibility Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4" style="font-weight: bold; color: #4b6584;">Compatibility Report</h1>
+    <p class="text-muted text-center">Review the compatibility of job postings and candidate resumes below.</p>
+
+    <!-- Clustered Bar Chart -->
+    {% if bar_chart_path %}
+    <div class="text-center mt-4">
+        <img src="{{ bar_chart_path }}" alt="Compatibility Scores (Jobs vs. Candidates)" class="img-fluid border border-secondary" style="border-radius: 10px;">
+    </div>
+    {% endif %}
+
+    <!-- Search Bar -->
+    <form method="get" action="{% url 'generate_compatibility_report' %}" class="my-4">
+        <div class="input-group justify-content-center">
+            <input 
+                type="text" 
+                name="search" 
+                class="form-control w-50 shadow-sm" 
+                placeholder="Search by company name..." 
+                value="{{ search_query }}" 
+                style="border-radius: 25px; padding: 10px 15px; font-size: 1rem;">
+            <button class="btn btn-primary px-4" type="submit" style="border-radius: 25px; font-size: 1rem;">
+                Search
+            </button>
+        </div>
+    </form>
+
+    <!-- Filtered Results -->
+    {% if search_query %}
+    <h4 class="text-center mt-5 mb-3" style="font-weight: bold; color: #4b6584;">Filtered Results</h4>
+    {% if filtered_similarity_matrix %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered align-middle" style="background-color: #f8f9fa;">
+            <thead>
+                <tr>
+                    <th>Company Name</th>
+                    {% for employee in employees %}
+                    <th>{{ employee }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for company, scores in filtered_similarity_matrix.items %}
+                <tr>
+                    <td>{{ company }}</td>
+                    {% for employee, score_data in scores.items %}
+                    <td>{{ score_data.score|floatformat:2 }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center text-danger">No company found matching the search query.</p>
+    {% endif %}
+    {% endif %}
+
+    <!-- Full Table -->
+    <h4 class="text-center mt-5 mb-3" style="font-weight: bold; color: #4b6584;">All Companies</h4>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered align-middle" style="background-color: #f8f9fa;">
+            <thead>
+                <tr>
+                    <th>Company Name</th>
+                    {% for employee in employees %}
+                    <th>{{ employee }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for company, scores in full_similarity_matrix.items %}
+                <tr>
+                    <td>{{ company }}</td>
+                    {% for employee, score_data in scores.items %}
+                    <td>
+                        {% if score_data.job_id %}
+                        <a href="{% url 'view_employer_compatibility' company=company employee=employee %}" class="text-decoration-none">
+                            {{ score_data.score|floatformat:2 }}
+                        </a>
+                        {% else %}
+                        <span>{{ score_data.score|floatformat:2 }}</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

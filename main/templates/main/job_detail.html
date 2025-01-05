@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Job Details{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">{{ job.company_name }} - {{ job.role }}</h1>
+
+    <div class="card shadow p-4">
+        <h3 class="mb-3">Job Details</h3>
+        <p><strong>Company Name:</strong> {{ job.company_name }}</p>
+        <p><strong>Role:</strong> {{ job.role }}</p>
+        <p><strong>Industry Type:</strong> {{ job.industry_type }}</p>
+        <p><strong>Department:</strong> {{ job.department }}</p>
+        <p><strong>Employment Type:</strong> {{ job.employment_type }}</p>
+        <p><strong>Role Category:</strong> {{ job.role_category }}</p>
+        <p><strong>Education:</strong> {{ job.education }}</p>
+        <p><strong>Skills:</strong> {{ job.skills }}</p>
+        <p><strong>Experience:</strong> {{ job.experience }}</p>
+        <p><strong>Location:</strong> {{ job.location }}</p>
+        <p><strong>Job Description:</strong> {{ job.job_description }}</p>
+
+        <a href="{% url 'view_recommendations' %}" class="btn btn-secondary mt-3">Back to Recommendations</a>
+    </div>
+</div>
+{% endblock %}

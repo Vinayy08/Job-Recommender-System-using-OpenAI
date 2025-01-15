@@ -203,35 +203,52 @@ def employee_dashboard(request):
         return render(request, 'main/error.html', {"error_message": str(e)})
 
 
+from django.db import IntegrityError
+
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.utils.decorators import method_decorator
+
+@csrf_protect
 def employer_register(request):
     if request.method == 'POST':
         form = EmployerRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])
-            user.save()
+            try:
+                # Save the user object
+                user = form.save(commit=False)
+                user.set_password(form.cleaned_data['password'])
+                user.save()
 
-            # Assign contact_email from form or fallback to User's email.
-            contact_email = form.cleaned_data.get('contact_email') or user.email
+                contact_email = form.cleaned_data.get('contact_email') or user.email
 
-            # Create the employer's profile
-            UserProfile.objects.create(
-                user=user,
-                role='employer',
-                company_name=form.cleaned_data['company_name'],
-                company_location=form.cleaned_data['company_location'],
-                contact_email=contact_email,
-                contact_number=form.cleaned_data['contact_number'],
-            )
+                # Create the UserProfile instance
+                UserProfile.objects.create(
+                    user=user,
+                    role='employer',
+                    company_name=form.cleaned_data['company_name'],
+                    company_location=form.cleaned_data['company_location'],
+                    contact_email=contact_email,
+                    contact_number=form.cleaned_data['contact_number'],
+                )
 
-            messages.success(request, "Employer registration successful. Please log in.")
-            return redirect('login')
+                # Display success message and redirect to login
+                messages.success(request, "Employer registration successful. Please log in.")
+                return redirect('login')
+
+            except IntegrityError:
+                messages.error(request, "A user with this email or contact number already exists.")
+            except Exception as e:
+                print(f"Unexpected error during registration: {e}")
+                messages.error(request, "An unexpected error occurred during registration. Please try again.")
         else:
+            print(f"Form errors: {form.errors}")
             messages.error(request, "Please correct the errors below.")
     else:
         form = EmployerRegistrationForm()
 
     return render(request, 'main/employer_register.html', {'form': form})
+
+
 
 def employee_register(request):
     if request.method == 'POST':

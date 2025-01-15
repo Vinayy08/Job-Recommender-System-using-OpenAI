@@ -56,22 +56,52 @@ class UserRegistrationForm(forms.ModelForm):
         return user
 
 
-class EmployerRegistrationForm(UserRegistrationForm):
+
+class EmployerRegistrationForm(forms.ModelForm):
     company_name = forms.CharField(required=True)
     company_location = forms.CharField(required=True)
     contact_number = forms.CharField(required=True)
+    password = forms.CharField(widget=forms.PasswordInput, required=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password']
+
+    def clean_contact_number(self):
+        """
+        Ensure the contact number is unique in the UserProfile model.
+        """
+        contact_number = self.cleaned_data.get('contact_number')
+        if UserProfile.objects.filter(contact_number=contact_number).exists():
+            raise ValidationError("This contact number is already registered.")
+        return contact_number
+
+    def clean_email(self):
+        """
+        Ensure the email is unique.
+        """
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("This email is already registered.")
+        return email
 
     def save(self, commit=True):
+        """
+        Override the save method to create a UserProfile for the employer.
+        """
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password'])
+
         if commit:
             user.save()
+
             UserProfile.objects.create(
                 user=user,
-                role='employer',
+                role='employer',  # Automatically set the role as 'employer'
                 company_name=self.cleaned_data['company_name'],
                 company_location=self.cleaned_data['company_location'],
                 contact_number=self.cleaned_data['contact_number'],
+                contact_email=self.cleaned_data['email'],
             )
         return user
 

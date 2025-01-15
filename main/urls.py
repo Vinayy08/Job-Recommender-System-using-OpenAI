@@ -45,7 +45,7 @@ urlpatterns = [
         views.employer_side_openaiCR,
         name='employer_side_openaiCR'
     ),
-     path('test-openai-key/', views.test_openai_key, name='test_openai_key'),
+    #  path('test-openai-key/', views.test_openai_key, name='test_openai_key'),
 
     # openai - employee side
     path('employee-ai-compatibility-scores/', views.employee_side_openaiCS, name='employee_side_openaiCS'),

@@ -3,31 +3,33 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4" style="font-weight: 600; color: #0d1116;">Detailed Compatibility Report</h1>
-    <p class="text-muted text-center mb-4">A detailed analysis of the compatibility between the selected job and employee.</p>
+    <h1 class="text-center mb-4 text-primary font-weight-bold" style="font-size: 2.5rem;">Detailed Compatibility Report</h1>
+    <p class="text-muted text-center mb-5" style="font-size: 1.2rem;">A detailed analysis of the compatibility between the selected job and employee.</p>
 
-    <div class="card mb-4 shadow-sm">
+    <div class="card mb-4 shadow-lg">
         <div class="card-header bg-primary text-white">
-            <h4 class="card-title mb-0">Job Details</h4>
+            <h4 class="card-title mb-0" style="font-size: 1.5rem; font-weight: bold;">Job Details</h4>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="font-size: 1.2rem;">
             <p><strong>Job:</strong> {{ job }}</p>
             <p><strong>Employee:</strong> {{ employee }}</p>
         </div>
     </div>
 
-    <div class="card mb-4 shadow-sm">
+    <div class="card mb-4 shadow-lg">
         <div class="card-header bg-secondary text-white">
-            <h4 class="card-title mb-0">Compatibility Details</h4>
+            <h4 class="card-title mb-0" style="font-size: 1.5rem; font-weight: bold;">Compatibility Details</h4>
         </div>
-        <div class="card-body">
-            <pre style="white-space: pre-wrap; font-family: 'Courier New', Courier, monospace;">{{ compatibility_details }}</pre>
+        <div class="card-body" style="font-size: 1.2rem;">
+            <pre class="text-dark" style="white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; line-height: 1.5;">
+                {{ compatibility_details }}
+            </pre>
         </div>
     </div>
 
-    <div class="text-center mt-4">
-        <a href="?download=true" class="btn btn-success">Download as PDF</a>
-        <a href="{% url 'employer_side_openaiCS' %}" class="btn btn-outline-primary">Back to Compatibility Scores</a>
-    </div>    
+    <div class="text-center mt-5">
+        <a href="?download=true" class="btn btn-success btn-lg" style="font-size: 1.1rem;">Download as PDF</a>
+        <a href="{% url 'employer_side_openaiCS' %}" class="btn btn-outline-primary btn-lg" style="font-size: 1.1rem;">Back to Compatibility Scores</a>
+    </div>
 </div>
 {% endblock %}

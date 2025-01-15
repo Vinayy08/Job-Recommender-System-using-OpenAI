@@ -1405,5 +1405,3 @@ def employee_side_openaiCR(request, job, employee):
         'compatibility_score': "N/A",
         'detailed_report': detailed_report,
     })
-
-

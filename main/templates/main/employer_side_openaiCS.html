@@ -1,42 +1,46 @@
 {% extends 'base.html' %}
+
 {% block title %}Compatibility Scores{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4" style="font-weight: 600; color: #0d1116;">Compatibility Scores</h1>
+    <h1 class="text-center mb-4 text-primary font-weight-bold">Compatibility Scores</h1>
     <p class="text-muted text-center mb-4">Click on a score to view a detailed compatibility report.</p>
 
-    <table class="table table-striped table-bordered">
-        <thead>
-            <tr>
-                <th>Job</th>
-                <th>Employee</th>
-                <th>Compatibility Score</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for job, employees in compatibility_data.items %}
-                {% for employee, score in employees.items %}
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="thead-dark">
                 <tr>
-                    <td>{{ job }}</td>
-                    <td>{{ employee }}</td>
-                    <td>
-                        {% if score and score != 'N/A' %}
-                            <a href="{% url 'employer_side_openaiCR' job=job employee=employee %}" class="text-decoration-none">
-                                {{ score|floatformat:2 }}
-                            </a>
-                        {% else %}
-                            <span class="text-danger">N/A</span>
-                        {% endif %}
-                    </td>
+                    <th>Job</th>
+                    <th>Employee</th>
+                    <th>Compatibility Score</th>
                 </tr>
+            </thead>
+            <tbody>
+                {% for job, employees in compatibility_data.items %}
+                    {% for employee, score in employees.items %}
+                    <tr>
+                        <td>{{ job }}</td>
+                        <td>{{ employee }}</td>
+                        <td>
+                            {% if score %}
+                                <a href="{% url 'employer_side_openaiCR' job=job employee=employee %}" class="text-decoration-none text-success font-weight-bold">
+                                    {{ score|floatformat:2 }}
+                                </a>
+                            {% else %}
+                                <span class="text-danger">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 
     <div class="text-center mt-4">
-        <a href="{% url 'employer_dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+        <a href="{% url 'employer_dashboard' %}" class="btn btn-outline-primary">Back to Dashboard</a>
     </div>
 </div>
 {% endblock %}

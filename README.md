@@ -61,12 +61,19 @@ A Django-based web application designed to recommend jobs to employees and candi
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
 3. Install dependencies:
-   pip install django
-   pip install matplotlib
-   pip install seaborn
-   pip install openai
-   pip install xhtml2pdf
-   pip install Pillow  # Required for handling images
+   pip install django 
+   pip install matplotlib 
+   pip install seaborn 
+   pip install openai 
+   pip install xhtml2pdf 
+   pip install Pillow
+   pip install django-widget-tweaks
+   pip install scikit-learn
+   pip install spacy
+   python -m spacy download en_core_web_sm
+   pip install PyPDF2
+   pip install python-docx
+   pip install fuzzywuzzy
 4. Apply database migrations:
    python manage.py makemigrations
    python manage.py migrate

@@ -59,17 +59,17 @@ import re
 
 def extract_min_experience(experience_range_str):
     """
-    Extracts the minimum required experience from a given experience range string like "0-1 years" or "3 years".
-    If the experience is a range, returns the lower bound. Otherwise, returns the exact experience in years.
+    Extracts the minimum required experience from a given experience range string like "0-1 years", "1 - 2 years" or "3 years".
+    If the experience is a range or has a '+', returns the lower bound. Otherwise, returns the exact experience in years.
     """
     if isinstance(experience_range_str, str):
-        # Match a pattern like "0-1 years" or "3 years"
-        match = re.match(r"(\d+)-(\d+)\s*years?", experience_range_str)
+        # Match a pattern like "0-1 years", "1 - 2 years" or "3 years"
+        match = re.match(r"(\d+)\s*-\s*(\d+)\s*years?", experience_range_str)
         if match:
             # If it's a range, return the lower bound
             return int(match.group(1))
-        # Match for a single experience like "3 years"
-        match = re.match(r"(\d+)\s*years?", experience_range_str)
+        # Match for a single experience or "1+ years"
+        match = re.match(r"(\d+)\+?\s*years?", experience_range_str)
         if match:
             return int(match.group(1))
     return 0  # Return 0 if no valid experience found

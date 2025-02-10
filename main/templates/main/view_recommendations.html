@@ -1,3 +1,4 @@
+<!-- main/view_recommendations.html -->
 {% extends 'base.html' %}
 {% block title %}Top 10 Job Recommendations{% endblock %}
 
@@ -5,47 +6,58 @@
 <div class="container mt-5">
     <h1 class="text-center">Top 10 Job Recommendations</h1>
 
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-warning" role="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
     {% if recommended_jobs %}
-        <div class="table-responsive mt-4">
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Company Name</th>
-                        <th>Role</th>
-                        <th>Match Score</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for recommendation in recommended_jobs %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>{{ recommendation.company_name }}</td>
-                            <td>{{ recommendation.role }}</td>
-                            <td>{{ recommendation.compatibility_score }}%</td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button class="btn btn-sm {% if recommendation.id in applied_job_ids %}btn-secondary disabled{% else %}btn-success{% endif %} apply-btn"
-                                            data-job-id="{{ recommendation.id }}">
-                                        {% if recommendation.id in applied_job_ids %}
-                                            Already Applied
-                                        {% else %}
-                                            Apply
-                                        {% endif %}
-                                    </button>
-                                    <a href="{% url 'job_detail' recommendation.id %}" class="btn btn-sm btn-info">
-                                        View Details
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Company Name</th>
+                    <th>Role</th>
+                    <th>Match Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for recommendation in recommended_jobs %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ recommendation.company_name }}</td>
+                    <td>{{ recommendation.role }}</td>
+                    <td>{{ recommendation.compatibility_score }}%</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm {% if recommendation.id in applied_job_ids %}btn-secondary disabled{% else %}btn-success{% endif %} apply-btn"
+                                    data-job-id="{{ recommendation.id }}">
+                                {% if recommendation.id in applied_job_ids %}
+                                Already Applied
+                                {% else %}
+                                Apply
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'job_detail' recommendation.id %}" class="btn btn-sm btn-info">
+                                View Details
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-        <p class="text-center">No recommendations available at this time.</p>
+    <div class="text-center mt-4">
+        <p>No recommendations available at this time.</p>
+        <a href="{% url 'view_compatibility_scores' %}" class="btn btn-primary">Calculate Compatibility Scores</a>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

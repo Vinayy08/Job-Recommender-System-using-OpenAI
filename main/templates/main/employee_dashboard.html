@@ -8,40 +8,45 @@
         <p style="font-size: 1.1rem; color: #16222e;">Manage your profile, applications, and recommended jobs in one place.</p>
     </div>
 
+    {% if incomplete_profile %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-warning" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+    {% endif %}
+
+    {% if not incomplete_profile %}
     <div class="d-flex justify-content-center gap-3 my-4">
-        <a href="{% url 'view_recommendations' %}" class="btn btn-outline-primary fw-bold">
-            View Top 10 Job Recommendations
-        </a>
-        <a href="{% url 'view_jobs' %}" class="btn btn-outline-success fw-bold">
-            View Jobs
-        </a>
-        <a href="{% url 'update_profile' %}" class="btn btn-outline-secondary fw-bold">
-            Update Profile
-        </a>
+        <a href="{% url 'view_jobs' %}" class="btn btn-outline-success fw-bold">View Jobs</a>
+        <a href="{% url 'update_profile' %}" class="btn btn-outline-secondary fw-bold">Update Profile</a>
         <a href="{% url 'view_employee_applications' %}" class="btn btn-outline-info fw-bold">View My Applications</a>
         {% if resume_path %}
-            <a href="{{ resume_path }}" target="_blank" class="btn btn-outline-warning fw-bold">
-                View Resume
-            </a>
+        <a href="{{ resume_path }}" target="_blank" class="btn btn-outline-warning fw-bold">View Resume</a>
         {% else %}
-            <button class="btn btn-outline-warning fw-bold" disabled>No Resume Uploaded</button>
+        <button class="btn btn-outline-warning fw-bold" disabled>No Resume Uploaded</button>
         {% endif %}
-        <a href="{% url 'view_compatibility_scores' %}" class="btn btn-outline-dark fw-bold">
-            View Compatibility Scores
-        </a>
-        <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-outline-dark fw-bold">
-            AI Compatibility Scores
-        </a> <!-- New button added -->
+        <a href="{% url 'view_compatibility_scores' %}" class="btn btn-outline-dark fw-bold">View Compatibility Scores</a>
+        <a href="{% url 'view_recommendations' %}" class="btn btn-outline-primary fw-bold">View Top 10 Job Recommendations</a>
+        <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-outline-dark fw-bold">AI Compatibility Scores</a>
     </div>
 
     <div class="mt-5 text-center">
-        <h2 class="text-center" style="color: #2b3847;">Your Compatibility Scores</h2>
+        <h2 style="color: #2b3847;">Your Compatibility Scores</h2>
         {% if clustered_chart_path %}
-            <img src="{{ clustered_chart_path }}" alt="Compatibility Clustered Bar Chart" class="img-fluid mt-4">
-            <p class="text-muted mt-3">This clustered bar chart shows your compatibility scores with various job opportunities.</p>
+        <img src="{{ clustered_chart_path }}" alt="Compatibility Clustered Bar Chart" class="img-fluid mt-4">
+        <p class="text-muted mt-3">This clustered bar chart shows your compatibility scores with various job opportunities.</p>
         {% else %}
-            <p class="text-danger mt-4">No compatibility data is available for you at this time.</p>
+        <p class="text-danger mt-4">No compatibility data is available for you at this time.</p>
         {% endif %}
     </div>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        <strong>Profile Incomplete:</strong> Please complete your profile to access all features.
+        <a href="{% url 'update_profile' %}" class="btn btn-primary">Complete Profile</a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

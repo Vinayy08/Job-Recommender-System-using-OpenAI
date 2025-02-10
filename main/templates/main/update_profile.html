@@ -9,11 +9,11 @@
         <div class="col-md-8">
             <form method="post" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light">
                 {% csrf_token %}
-                
+
                 <!-- Name -->
                 <div class="mb-3">
                     <label for="name" class="form-label fw-bold">Name</label>
-                    <input type="text" name="name" id="name" value="{{ user.get_full_name }}" class="form-control" placeholder="Enter your name">
+                    <input type="text" name="name" id="name" value="{{ user_profile.full_name }}" class="form-control" placeholder="Enter your name">
                 </div>
 
                 <!-- Email -->
@@ -52,7 +52,6 @@
                     <input type="number" name="experience_years" id="experience_years" value="{{ user_profile.experience_years }}" class="form-control" placeholder="Enter your experience in years">
                 </div>
 
-
                 <!-- Experience/Projects -->
                 <div class="mb-3">
                     <label for="experience_projects" class="form-label fw-bold">Experience / Projects</label>
@@ -64,6 +63,11 @@
                     <label for="resume" class="form-label fw-bold">Upload Resume</label>
                     <input type="file" name="resume" id="resume" class="form-control" accept=".pdf,.doc,.docx">
                     <small class="form-text text-muted">Upload your updated resume. This will replace the existing one.</small>
+                    {% if user_profile.resume %}
+                    <small class="form-text text-muted">Current file: {{ user_profile.resume.name }}</small>
+                    {% else %}
+                    <small class="form-text text-muted">No resume uploaded.</small>
+                    {% endif %}
                 </div>
 
                 <!-- Change Password -->

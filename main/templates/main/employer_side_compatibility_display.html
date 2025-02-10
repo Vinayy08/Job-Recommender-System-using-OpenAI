@@ -17,7 +17,7 @@
     <!-- Title -->
     <h1 class="text-center section-title">Compatibility Report</h1>
     <p class="text-muted text-center">
-        Below is the compatibility report for <strong>{{ employee_name|default:"Employee" }}</strong> 
+        Below is the compatibility report for <strong>{{ employee_full_name|default:"Employee" }}</strong> 
         with job requirements for <strong>{{ company_name|default:"Company" }}</strong>.
     </p>
 
@@ -56,7 +56,6 @@
         <p class="text-center text-muted">No compatibility data available.</p>
         {% endif %}
     </div>
-
 
     <!-- Overall Compatibility -->
     <h3 class="section-title mt-4">Overall Compatibility</h3>

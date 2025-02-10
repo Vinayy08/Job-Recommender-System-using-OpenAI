@@ -7,8 +7,8 @@
 
     <div class="mt-4">
         <h3>Recommended Jobs</h3>
-        {% for employee, jobs in recommendations.items %}
-            <h4>{{ employee }}</h4>
+        {% for full_name, jobs in recommendations.items %}
+            <h4>{{ full_name }}</h4>
             <ul>
                 {% for job in jobs %}
                     <li>{{ job.company_name }} - {{ job.role }}</li>

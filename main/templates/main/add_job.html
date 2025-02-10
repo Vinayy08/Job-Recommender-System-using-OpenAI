@@ -1,8 +1,29 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Add New Job{% endblock %}
 
 {% block content %}
 <div class="container my-5">
+    <!-- Trigger Bootstrap Toast for messages -->
+    {% if messages %}
+    <div aria-live="polite" aria-atomic="true" class="position-relative">
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+            {% for message in messages %}
+            <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                <div class="toast-header">
+                    <strong class="me-auto">Notification</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    {{ message }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card shadow-lg">
         <div class="card-header text-center bg-primary text-white">
             <h2 class="fw-bold">Post a New Job</h2>
@@ -11,16 +32,16 @@
             <form method="POST" class="needs-validation" novalidate>
                 {% csrf_token %}
                 {% for field in form %}
-                    <div class="mb-4">
-                        <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger mt-2">{{ error }}</div>
-                        {% endfor %}
-                    </div>
+                <div class="mb-4">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                    <div class="text-danger mt-2">{{ error }}</div>
+                    {% endfor %}
+                </div>
                 {% endfor %}
                 <div class="text-center mt-4">
                     <button type="submit" class="btn btn-primary btn-lg px-4">
@@ -34,4 +55,13 @@
         </div>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var toastElList = [].slice.call(document.querySelectorAll('.toast'))
+      var toastList = toastElList.map(function(toastEl) {
+          return new bootstrap.Toast(toastEl).show();
+      });
+  });
+</script>
 {% endblock %}

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver  
-from .models import Job, UserProfile
+from .models import Job, UserProfile, User
 import os
 
 @receiver(post_save, sender=Job)

@@ -1,37 +1,52 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
+
 {% block title %}Compatibility Report{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4" style="font-weight: 600; color: #0d1116;">Detailed Compatibility Report</h1>
-    <div class="text-center">
-        <h3 style="color: #2b3847;">{{ company_name }} and {{ employee_name }}</h3>
+    <h1 class="text-center mb-4">Detailed Compatibility Report</h1>
+    <h3 class="text-center mb-5 text-secondary">{{ company_name }} and {{ employee_name }}</h3>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>1. Strengths</h4>
+        </div>
+        <div class="card-body bg-light">
+            <p>{{ detailed_report|markdown_bold|linebreaks }}</p>
+        </div>
     </div>
 
-    <div class="mt-5">
-        <h4>1. Strengths:</h4>
-        <p style="font-size: 1.1rem; line-height: 1.6;">{{ detailed_report|linebreaks }}</p>
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h4>2. Gap Analysis</h4>
+        </div>
+        <div class="card-body bg-light">
+            <p>{{ detailed_report|markdown_bold|linebreaks }}</p>
+        </div>
     </div>
 
-    <div class="mt-4">
-        <h4>2. Gap Analysis:</h4>
-        <p style="font-size: 1.1rem; line-height: 1.6;">{{ detailed_report|linebreaks }}</p>
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-white">
+            <h4>3. Areas for Improvement</h4>
+        </div>
+        <div class="card-body bg-light">
+            <p>{{ detailed_report|markdown_bold|linebreaks }}</p>
+        </div>
     </div>
 
-    <div class="mt-4">
-        <h4>3. Areas for Improvement:</h4>
-        <p style="font-size: 1.1rem; line-height: 1.6;">{{ detailed_report|linebreaks }}</p>
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4>4. Recommendations</h4>
+        </div>
+        <div class="card-body bg-light">
+            <p>{{ detailed_report|markdown_bold|linebreaks }}</p>
+        </div>
     </div>
 
-    <div class="mt-4">
-        <h4>4. Recommendations:</h4>
-        <p style="font-size: 1.1rem; line-height: 1.6;">{{ detailed_report|linebreaks }}</p>
-    </div>
-
-    <div class="mt-4 text-center">
+    <div class="text-center mt-4">
         <a href="?download=1" class="btn btn-success">Download as PDF</a>
         <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-primary">Back to Compatibility Scores</a>
     </div>
 </div>
-
 {% endblock %}

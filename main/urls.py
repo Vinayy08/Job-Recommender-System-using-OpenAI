@@ -29,7 +29,7 @@ urlpatterns = [
     path('view-resume/', views.view_resume, name='view_resume'),
     path('download-resume/<int:application_id>/', views.download_resume, name='download_resume'),
     # Employer compatibility view (you can use this for individual job compatibility details)
-    path('compatibility-report/<str:company>/<str:employee>/', views.view_employer_compatibility, name='view_employer_compatibility'),
+    path('compatibility-report/<str:company>/<int:user_id>/', views.view_employer_compatibility, name='view_employer_compatibility'),
     
     # For generating the compatibility report page (filtered results, tables, etc.)
     path('compatibility-report/', views.compatibility_report_view, name='generate_compatibility_report'),
@@ -57,3 +57,4 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    

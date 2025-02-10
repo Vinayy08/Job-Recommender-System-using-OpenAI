@@ -1,4 +1,5 @@
 import logging
+import math
 import os , re
 from django.conf import settings
 import pandas as pd
@@ -161,10 +162,21 @@ def compare_resume_with_job(resume_details, job_details):
             "recommendation": recommendation_text
         }
 
+        # Log final output before returning
+        logger.debug(f"Returning from compare_resume_with_job: {criteria}, {scores}")
+        return criteria, scores
+
     except Exception as e:
         logger.error(f"Error comparing resume with job: {e}")
-        return [], {"education_compatibility": 0, "skills_compatibility": 0, "experience_compatibility": 0, "overall_compatibility": 0, "recommendation": ""}
-
+        # Log what is being returned on error
+        logger.debug("Returning default values due to error.")
+        return [], {
+            "education_compatibility": 0, 
+            "skills_compatibility": 0, 
+            "experience_compatibility": 0, 
+            "overall_compatibility": 0, 
+            "recommendation": "An error occurred. Unable to calculate compatibility."
+        }
 
 def generate_recommendations(compatibility_matrix, job_details):
     """
@@ -185,24 +197,21 @@ def generate_recommendations(compatibility_matrix, job_details):
         if isinstance(job_skills, str):
             job_skills = {skill.strip().lower() for skill in job_skills.split(",")}
         else:
-            job_skills = set(map(lambda s: s.lower(), job_skills))
+            job_skills = set(map(lambda s: s.lower().strip(), job_skills))
 
         # Identify missing skills (those required by the job but not matched in the resume)
         missing_skills = job_skills & unmatched_skills
 
         # If there are missing skills, suggest upskill
         if missing_skills:
-            recommendations.append(f"Upskill in: {', '.join(missing_skills)}.")
+            recommendations.append(f"Upskill in: {', '.join(sorted(missing_skills))}.")
 
         # Check for mismatches in education and experience
         for criteria in compatibility_matrix:
             if criteria["Criteria"].lower() == "experience (years)" and "Experience mismatch" in criteria.get("Comments", ""):
                 recommendations.append("Consider gaining more relevant experience.")
             elif criteria["Criteria"].lower() == "education" and criteria["Match"] == "No":
-                if "any graduate" in job_details["education"].lower():
-                    recommendations.append("Your education meets the general requirements.")
-                else:
-                    recommendations.append("Pursue certifications or additional education to match job requirements.")
+                recommendations.append("Pursue certifications or additional education to match job requirements.")
 
         # Default recommendation if no specific mismatches are found
         return recommendations or ["No specific recommendations available."]
@@ -247,9 +256,9 @@ def generate_detailed_compatibility_report(employer=None, job_id=None):
             }
 
             for profile in user_profiles:
-                # Skip excluded users
-                if profile.user.username.lower() in EXCLUDED_USERS:
-                    logger.debug(f"Skipping excluded user: {profile.user.username}")
+                # Skip excluded users based on full_name
+                if profile.full_name.lower() in EXCLUDED_USERS:
+                    logger.debug(f"Skipping excluded user: {profile.full_name}")
                     continue
 
                 # Extract profile details
@@ -264,7 +273,7 @@ def generate_detailed_compatibility_report(employer=None, job_id=None):
 
                 # Append results to the report
                 detailed_report.append({
-                    "Candidate": profile.user.username,
+                    "Candidate": profile.full_name,
                     "Job": f"{job.company_name} - {job.role}",
                     "job_id": job.id,  # Include job_id for dynamic URL generation
                     "Criteria": compatibility_matrix,
@@ -276,9 +285,9 @@ def generate_detailed_compatibility_report(employer=None, job_id=None):
 
                 # Debugging logs
                 logger.debug(f"Job Details: {job_details}")
-                logger.debug(f"Resume Details for {profile.user.username}: {resume_details}")
+                logger.debug(f"Resume Details for {profile.full_name}: {resume_details}")
                 logger.debug(f"Compatibility Matrix: {compatibility_matrix}")
-                logger.debug(f"Scores for {profile.user.username} and Job {job.id}: {scores}")
+                logger.debug(f"Scores for {profile.full_name} and Job {job.id}: {scores}")
 
         logger.info("Detailed Report Generated")
         return detailed_report
@@ -321,15 +330,15 @@ def generate_employee_compatibility_report(employee):
         # List of excluded users
         EXCLUDED_USERS = ["vinaybharadwaj", "admin"]
 
-        # Check if the logged-in user is excluded
-        if employee.username.lower() in EXCLUDED_USERS:
-            raise ValueError("This user is not eligible for compatibility report generation.")
-
         # Fetch the logged-in employee's profile
         try:
             employee_profile = employee.userprofile
         except UserProfile.DoesNotExist:
             raise ValueError("Employee profile not found.")
+
+        # Check if the logged-in user is excluded
+        if employee_profile.full_name.lower() in EXCLUDED_USERS:
+            raise ValueError("This user is not eligible for compatibility report generation.")
 
         if not employee_profile.resume:
             raise ValueError("Employee does not have a resume uploaded.")
@@ -365,7 +374,7 @@ def generate_employee_compatibility_report(employee):
 
             # Append compatibility results to the report
             detailed_report.append({
-                "Job": company_name,  # Use original company name here
+                "Job": company_name,
                 "Criteria": compatibility_matrix,
                 "Education Compatibility": scores["education_compatibility"],
                 "Skills Compatibility": scores["skills_compatibility"],
@@ -387,9 +396,6 @@ def generate_employee_compatibility_report(employee):
         raise
 
 
-
-import matplotlib.pyplot as plt
-import math
 
 def generate_clustered_bar_chart(similarity_df, file_path):
     """
@@ -469,7 +475,6 @@ def recommend_top_jobs(similarity_df, jobs_query, top_n=10):
     return recommendations
 
 
-
 def generate_employee_clustered_chart(compatibility_scores, output_path):
     """
     Generate a clustered bar chart for employee compatibility scores.
@@ -530,3 +535,4 @@ def generate_employee_clustered_chart(compatibility_scores, output_path):
     plt.savefig(output_path, bbox_inches="tight", dpi=300)
     plt.close()
     logger.info(f"Clustered bar chart saved at {output_path}")
+

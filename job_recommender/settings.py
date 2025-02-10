@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from .settings_secret import OPENAI_API_KEY
 
-
 # Base directory of the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -14,6 +13,9 @@ DEBUG = True
 
 # Allowed hosts (add your domain in production)
 ALLOWED_HOSTS = []
+
+# Custom user model
+AUTH_USER_MODEL = 'main.User'  # Ensure Django uses the custom user model
 
 # Installed applications
 INSTALLED_APPS = [
@@ -41,7 +43,6 @@ MIDDLEWARE = [
 # Root URL configuration
 ROOT_URLCONF = 'job_recommender.urls'
 
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -57,7 +58,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 # WSGI application
 WSGI_APPLICATION = 'job_recommender.wsgi.application'
@@ -103,11 +103,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
-
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)

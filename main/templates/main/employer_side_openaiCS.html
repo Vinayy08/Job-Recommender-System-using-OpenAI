@@ -7,7 +7,6 @@
     <h1 class="text-center mb-4 text-primary font-weight-bold">Compatibility Scores</h1>
     <p class="text-muted text-center mb-4">Click on a score to view a detailed compatibility report.</p>
 
-
     <div class="table-responsive">
         <table class="table table-hover table-bordered">
             <thead class="thead-dark">
@@ -19,13 +18,13 @@
             </thead>
             <tbody>
                 {% for job, employees in compatibility_data.items %}
-                    {% for employee, score in employees.items %}
+                    {% for employee_full_name, score in employees.items %}
                     <tr>
                         <td>{{ job }}</td>
-                        <td>{{ employee }}</td>
+                        <td>{{ employee_full_name }}</td>
                         <td>
                             {% if score %}
-                                <a href="{% url 'employer_side_openaiCR' job=job employee=employee %}" class="text-decoration-none text-success font-weight-bold">
+                                <a href="{% url 'employer_side_openaiCR' job=job employee=employee_full_name %}" class="text-decoration-none text-success font-weight-bold">
                                     {{ score|floatformat:2 }}
                                 </a>
                             {% else %}

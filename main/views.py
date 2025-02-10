@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from django.core.paginator import Paginator
 import csv , os
@@ -27,7 +28,7 @@ from .forms import (
     JobForm,
     JobApplicationForm
 )
-from .models import Job, JobApplication,UserProfile
+from .models import User, UserProfile, Job, JobApplication
 from .utils import (
     REPORTS_DIR,
     compare_resume_with_job,
@@ -85,23 +86,29 @@ def employee_required(view_func):
     return _wrapped_view
 
 
+
 @login_required
 def home(request):
     try:
         profile = request.user.userprofile
+        context = {
+            'user': request.user,
+            'full_name': profile.full_name,  # Make sure this is consistent with your model field names
+            'email': request.user.email,
+            'contact_number': profile.contact_number if profile.contact_number else "Not Provided",
+        }
         if profile.role == 'employer':
-            context = {
-                'employer_name': request.user.username,
+            context.update({
+                'employer_name': profile.full_name,
                 'company_name': profile.company_name,
                 'company_location': profile.company_location,
-                'email': profile.contact_email,
-                'contact_number': profile.contact_number,
-            }
+            })
             return render(request, 'main/employer_home.html', context)
-        return render(request, 'main/employee_home.html')
+        return render(request, 'main/employee_home.html', context)
     except UserProfile.DoesNotExist:
         messages.error(request, "User profile not found. Please contact support.")
         return redirect('login')
+
 
 
 @login_required
@@ -160,47 +167,62 @@ def delete_job(request, job_id):
     return redirect('employer_dashboard')
 
 
+
 @login_required
 @employee_required
 def employee_dashboard(request):
-    """
-    Display the employee dashboard with compatibility chart and resume details.
-    """
-    try:
-        current_employee = request.user
+    current_employee = request.user
+    user_profile = current_employee.userprofile
 
-        # Generate detailed compatibility report
-        detailed_report = generate_employee_compatibility_report(current_employee)
-        if not detailed_report:
-            raise ValueError("No compatibility data found for this employee.")
+    # Check for essential profile completeness (exclude experience_years and links)
+    required_fields = [
+        user_profile.full_name, 
+        user_profile.resume, 
+        user_profile.contact_number,
+        user_profile.education,
+        user_profile.skills,
+        user_profile.experience_projects
+    ]
 
-        # Build similarity DataFrame
-        similarity_df = pd.DataFrame(
-            {entry["Job"]: entry["Overall Compatibility"] / 100 for entry in detailed_report},
-            index=["Overall Compatibility"],
-        ).T
+    incomplete_profile = not all(required_fields)
 
-        # Generate clustered bar chart
-        clustered_chart_path = os.path.join(REPORTS_DIR, f'{current_employee.username}_compatibility_clustered_chart.png')
-        if not os.path.exists(REPORTS_DIR):
-            os.makedirs(REPORTS_DIR)
-        generate_employee_clustered_chart(similarity_df["Overall Compatibility"], clustered_chart_path)
+    if incomplete_profile:
+        messages.error(request, "Please complete your profile to access all features of the Employee Dashboard.")
 
-        # Handle resume availability
-        user_profile = getattr(current_employee, 'userprofile', None)
-        resume_path = user_profile.resume.url if user_profile and user_profile.resume and user_profile.resume.name else None
+    if not incomplete_profile:
+        try:
+            detailed_report = generate_employee_compatibility_report(current_employee)
+            if not detailed_report:
+                raise ValueError("No compatibility data found for this employee.")
+            
+            similarity_df = pd.DataFrame(
+                {entry["Job"]: entry["Overall Compatibility"] / 100 for entry in detailed_report},
+                index=["Overall Compatibility"]
+            ).T
 
-        # Render the dashboard
-        return render(request, 'main/employee_dashboard.html', {
-            'clustered_chart_path': f'/static/reports/{os.path.basename(clustered_chart_path)}',
-            'employee_name': current_employee.username,
-            'resume_path': resume_path,
-            'detailed_report': detailed_report,
-        })
+            clustered_chart_path = os.path.join(REPORTS_DIR, f'{user_profile.full_name}_compatibility_clustered_chart.png')
+            if not os.path.exists(REPORTS_DIR):
+                os.makedirs(REPORTS_DIR)
+            generate_employee_clustered_chart(similarity_df["Overall Compatibility"], clustered_chart_path)
 
-    except Exception as e:
-        logger.error(f"Error in employee_dashboard: {e}")
-        return render(request, 'main/error.html', {"error_message": str(e)})
+            resume_path = user_profile.resume.url if user_profile.resume and user_profile.resume.name else None
+
+            return render(request, 'main/employee_dashboard.html', {
+                'clustered_chart_path': f'/static/reports/{os.path.basename(clustered_chart_path)}',
+                'employee_name': user_profile.full_name,
+                'resume_path': resume_path,
+                'detailed_report': detailed_report,
+                'incomplete_profile': incomplete_profile
+            })
+
+        except Exception as e:
+            logger.error(f"Error in employee_dashboard: {e}")
+            return render(request, 'main/error.html', {"error_message": str(e)})
+
+    return render(request, 'main/employee_dashboard.html', {
+        'employee_name': user_profile.full_name,
+        'incomplete_profile': incomplete_profile
+    })
 
 
 from django.db import IntegrityError
@@ -208,97 +230,43 @@ from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils.decorators import method_decorator
 
+
+# Employer Registration View
 @csrf_protect
 def employer_register(request):
     if request.method == 'POST':
         form = EmployerRegistrationForm(request.POST)
         if form.is_valid():
             try:
-                # Save the user object
-                user = form.save(commit=False)
-                user.set_password(form.cleaned_data['password'])
-                user.save()
-
-                contact_email = form.cleaned_data.get('contact_email') or user.email
-
-                # Create the UserProfile instance
-                UserProfile.objects.create(
-                    user=user,
-                    role='employer',
-                    company_name=form.cleaned_data['company_name'],
-                    company_location=form.cleaned_data['company_location'],
-                    contact_email=contact_email,
-                    contact_number=form.cleaned_data['contact_number'],
-                )
-
-                # Display success message and redirect to login
+                user = form.save()
                 messages.success(request, "Employer registration successful. Please log in.")
                 return redirect('login')
-
             except IntegrityError:
                 messages.error(request, "A user with this email or contact number already exists.")
             except Exception as e:
-                print(f"Unexpected error during registration: {e}")
-                messages.error(request, "An unexpected error occurred during registration. Please try again.")
+                messages.error(request, f"An unexpected error occurred during registration: {e}")
         else:
-            print(f"Form errors: {form.errors}")
             messages.error(request, "Please correct the errors below.")
     else:
         form = EmployerRegistrationForm()
-
     return render(request, 'main/employer_register.html', {'form': form})
 
-
-
+# Employee Registration View
+@csrf_protect
 def employee_register(request):
     if request.method == 'POST':
-        form = EmployeeRegistrationForm(request.POST, request.FILES)
+        form = EmployeeRegistrationForm(request.POST)
         if form.is_valid():
             try:
-                # Check for duplicate contact number
-                contact_number = form.cleaned_data['contact_number']
-                if UserProfile.objects.filter(contact_number=contact_number).exists():
-                    messages.error(request, "This contact number is already registered.")
-                    return render(request, 'main/employee_register.html', {'form': form})
-
-                # Create user
-                user = form.save(commit=False)
-                user.set_password(form.cleaned_data['password'])
-                user.save()
-
-                # Handle resume
-                resume = request.FILES.get('resume', None)
-                skills, experience_projects = "", ""
-                if resume:
-                    try:
-                        resume_text = parse_resume(resume)
-                        extracted_data = extract_data_from_resume(resume_text)
-                        skills = extracted_data.get("skills", "")
-                        experience_projects = extracted_data.get("experience_projects", "")
-                    except Exception as e:
-                        messages.error(request, f"Error parsing resume: {e}")
-
-                # Create employee profile
-                UserProfile.objects.create(
-                    user=user,
-                    role='employee',
-                    contact_number=contact_number,
-                    resume=resume,
-                    skills=skills,
-                    experience_projects=experience_projects,
-                )
-
-                # Success message and redirect
+                user = form.save()
                 messages.success(request, "Employee registration successful. Please log in.")
                 return redirect('login')
-
             except Exception as e:
                 messages.error(request, f"Unexpected error during registration: {e}")
         else:
             messages.error(request, "Please correct the errors below.")
     else:
         form = EmployeeRegistrationForm()
-
     return render(request, 'main/employee_register.html', {'form': form})
 
 
@@ -320,6 +288,12 @@ def update_employer_profile(request):
         'user_profile': user_profile,
     })
 
+from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
 @login_required
 @employee_required
 def update_employee_profile(request):
@@ -333,24 +307,24 @@ def update_employee_profile(request):
         skills = request.POST.get('skills', '').strip()
         education = request.POST.get('education', '').strip()
         experience_projects = request.POST.get('experience_projects', '').strip()
-        resume = request.FILES.get('resume')
+        resume = request.FILES.get('resume', None)
         old_password = request.POST.get('old_password', '').strip()
         new_password = request.POST.get('new_password', '').strip()
 
         try:
             # Update user details
             if name:
-                first_name, *last_name = name.split(' ', 1)
-                request.user.first_name = first_name
-                request.user.last_name = last_name[0] if last_name else ''
-            if email:
+                user_profile.full_name = name
+            if email and email != request.user.email:
+                if User.objects.filter(email=email).exists():
+                    messages.error(request, "This email is already in use by another account.")
+                    return redirect('update_profile')
                 request.user.email = email
-            request.user.save()
 
-            # Update user profile details
-            if contact_number:
+            # Update contact number if changed and not in use
+            if contact_number and contact_number != user_profile.contact_number:
                 if UserProfile.objects.filter(contact_number=contact_number).exclude(user=request.user).exists():
-                    messages.error(request, "This contact number is already in use.")
+                    messages.error(request, "This contact number is already in use by another account.")
                     return redirect('update_profile')
                 user_profile.contact_number = contact_number
 
@@ -360,26 +334,27 @@ def update_employee_profile(request):
             user_profile.experience_projects = experience_projects
 
             if resume:
-                # Parse and extract data from the uploaded resume
+                # Assume parse_resume and extract_data_from_resume are defined
                 resume_text = parse_resume(resume)
                 extracted_data = extract_data_from_resume(resume_text)
 
+                # Updating profile details from extracted resume data
                 user_profile.resume = resume
                 user_profile.skills = extracted_data.get("skills", user_profile.skills)
                 user_profile.education = extracted_data.get("education", user_profile.education)
                 user_profile.experience_projects = extracted_data.get("experience_projects", user_profile.experience_projects)
-                user_profile.experience_years = extracted_data.get("experience_years", user_profile.experience_years)  # New field
+                user_profile.experience_years = extracted_data.get("experience_years", user_profile.experience_years)
                 user_profile.contact_number = extracted_data.get("contact_number", user_profile.contact_number)
                 user_profile.links = extracted_data.get("links", user_profile.links)
 
-                # Update user name and email if available in the extracted data
-                if extracted_data.get("name"):
-                    first_name, *last_name = extracted_data["name"].split(' ', 1)
-                    request.user.first_name = first_name
-                    request.user.last_name = last_name[0] if last_name else ''
-                if extracted_data.get("email"):
-                    request.user.email = extracted_data["email"]
-                request.user.save()
+                # Update full_name and email from extracted data if present
+                if 'name' in extracted_data:
+                    user_profile.full_name = extracted_data['name']
+                if 'email' in extracted_data and extracted_data['email'] != request.user.email:
+                    if User.objects.filter(email=extracted_data['email']).exists():
+                        messages.error(request, "This email is already in use by another account.")
+                        return redirect('update_profile')
+                    request.user.email = extracted_data['email']
 
             # Handle password change
             if old_password and new_password:
@@ -392,7 +367,9 @@ def update_employee_profile(request):
                 else:
                     messages.error(request, "Old password is incorrect.")
 
+            # Save the user and user profile objects
             user_profile.save()
+            request.user.save()  # Ensure user object is saved after all changes
             messages.success(request, "Profile updated successfully!")
             return redirect('update_profile')
 
@@ -416,62 +393,59 @@ def upload_csv(request):
             added_count = 0
             skipped_count = 0
             existing_jobs = set(
-                Job.objects.filter(employer=request.user).values_list('company_name', 'role', 'location')
+                Job.objects.filter(employer=request.user).values_list('company_name', 'role', 'location', named=True)
             )
 
             for row in reader:
-                try:
-                    job_key = (row['Company Name'], row['Role'], row['Location'])
-                    if job_key not in existing_jobs:
-                        Job.objects.create(
-                            employer=request.user,
-                            company_name=row.get('Company Name', ''),
-                            job_description=row.get('Job Description', ''),
-                            role=row.get('Role', ''),
-                            industry_type=row.get('Industry Type', ''),
-                            department=row.get('Department', ''),
-                            employment_type=row.get('Employment Type', ''),
-                            role_category=row.get('Role Category', ''),
-                            education=row.get('Education', ''),
-                            skills=row.get('Skills', ''),
-                            experience=row.get('Experience', ''),
-                            location=row.get('Location', ''),
-                        )
-                        added_count += 1
-                    else:
-                        skipped_count += 1
-                except KeyError as e:
-                    messages.error(request, f"Missing column in CSV: {e}")
-                    return redirect('upload_csv')
+                job_key = (row['Company Name'], row['Role'], row['Location'])
+                if job_key not in existing_jobs:
+                    Job.objects.create(
+                        employer=request.user,
+                        company_name=row['Company Name'],
+                        job_description=row['Job Description'],
+                        role=row['Role'],
+                        industry_type=row['Industry Type'],
+                        department=row['Department'],
+                        employment_type=row['Employment Type'],
+                        role_category=row['Role Category'],
+                        education=row['Education'],
+                        skills=row['Skills'],
+                        experience=row['Experience'],
+                        location=row['Location'],
+                    )
+                    added_count += 1
+                else:
+                    skipped_count += 1
 
             messages.success(
                 request,
-                f"{added_count} jobs added successfully. {skipped_count} duplicate jobs were skipped.",
+                f"{added_count} jobs added successfully. {skipped_count} duplicate jobs were skipped."
             )
             return redirect('employer_dashboard')
         else:
-            messages.error(request, "Invalid file format. Please upload a valid CSV file.")
+            for error in form.errors.values():
+                messages.error(request, error.as_text())
     else:
         form = CSVUploadForm()
 
     return render(request, 'main/upload_csv.html', {'form': form})
 
+
 def login_user(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data.get("username")
+            email = form.cleaned_data.get("email")
             password = form.cleaned_data.get("password")
-            user = authenticate(request, username=username, password=password)
+            user = authenticate(request, username=email, password=password)
             if user is not None:
                 login(request, user)
-                return redirect("home")  # Redirect to the home page or another view
+                return redirect("home")
             else:
-                form.add_error(None, "Invalid username or password")
+                form.add_error(None, "Invalid email or password")
     else:
         form = LoginForm()
     return render(request, "main/login.html", {"form": form})
-
 
 def logout_user(request):
     logout(request)
@@ -485,12 +459,10 @@ def add_job(request):
     if request.method == 'POST':
         form = JobForm(request.POST)
         if form.is_valid():
-            # Extract form data
             company_name = form.cleaned_data.get('company_name')
             role = form.cleaned_data.get('role')
             location = form.cleaned_data.get('location')
 
-            # Check if a duplicate job exists
             if Job.objects.filter(
                 employer=request.user,
                 company_name=company_name,
@@ -499,16 +471,19 @@ def add_job(request):
             ).exists():
                 messages.error(request, "This job already exists.")
             else:
-                # Save the job with the logged-in employer as the owner
                 job = form.save(commit=False)
                 job.employer = request.user
                 job.save()
                 messages.success(request, "Job posted successfully!")
                 return redirect('employer_dashboard')
+        else:
+            for error in form.errors.values():
+                messages.error(request, error.as_text())
     else:
         form = JobForm()
 
     return render(request, 'main/add_job.html', {'form': form})
+
 
 @login_required
 @employee_required
@@ -544,38 +519,29 @@ def view_all_jobs(request):
 @login_required
 @employee_required
 def view_recommendations(request):
-    try:
-        # Retrieve top 10 compatibility scores from the session
-        top_10_scores = request.session.get('top_10_compatibility_scores', [])
+    top_10_scores = request.session.get('top_10_compatibility_scores', [])
+    if not top_10_scores:
+        messages.warning(request, "Please calculate compatibility scores to view Top 10 Job Recommendations.")
+        return render(request, 'main/view_recommendations.html', {'recommended_jobs': []})
 
-        # Prepare the top 10 job recommendations based on the scores
-        top_10_jobs = []
-        for slug, data in top_10_scores:
-            company_name = data['company_name']
-            compatibility_score = data['score']
+    top_10_jobs = []
+    for slug, data in top_10_scores:
+        company_name = data['company_name']
+        compatibility_score = data['score']
+        job_details = Job.objects.filter(company_name__iexact=company_name).first()
+        if job_details:
+            top_10_jobs.append({
+                'id': job_details.id,
+                'company_name': job_details.company_name,
+                'role': job_details.role,
+                'compatibility_score': compatibility_score
+            })
 
-            # Fetch job details from the database
-            job_details = Job.objects.filter(company_name__iexact=company_name).first()
-            if job_details:
-                top_10_jobs.append({
-                    'id': job_details.id,
-                    'company_name': job_details.company_name,
-                    'role': job_details.role,
-                    'compatibility_score': compatibility_score
-                })
-
-        # Fetch applied job IDs
-        applied_job_ids = JobApplication.objects.filter(user=request.user).values_list('job_id', flat=True)
-
-        # Return the recommendations to the template
-        return render(request, 'main/view_recommendations.html', {
-            'recommended_jobs': top_10_jobs,
-            'applied_job_ids': applied_job_ids,
-        })
-
-    except Exception as e:
-        logger.error(f"Error in view_recommendations: {e}")
-        return render(request, 'main/error.html', {"error_message": str(e)})
+    applied_job_ids = JobApplication.objects.filter(user=request.user).values_list('job_id', flat=True)
+    return render(request, 'main/view_recommendations.html', {
+        'recommended_jobs': top_10_jobs,
+        'applied_job_ids': applied_job_ids,
+    })
 
 
 @login_required
@@ -754,13 +720,13 @@ def delete_application_employer(request, application_id):
     try:
         application = get_object_or_404(JobApplication, id=application_id)
 
-        # Debugging output
-        print(f"Logged-in user: {request.user} (ID: {request.user.id})")
-        print(f"Job's employer: {application.job.employer} (ID: {application.job.employer.id})")
+        # Debugging output to include full name
+        print(f"Logged-in user: {request.user.userprofile.full_name} (ID: {request.user.id})")
+        print(f"Job's employer: {application.job.employer.userprofile.full_name} (ID: {application.job.employer.id})")
 
         # Compare by ID to avoid object mismatch
         if application.job.employer.id != request.user.id:
-            print(f"Authorization failed for user {request.user} on job owned by {application.job.employer}")
+            print(f"Authorization failed for user {request.user.userprofile.full_name} on job owned by {application.job.employer.userprofile.full_name}")
             return render(request, 'main/error.html', {"error_message": "You are not authorized to access this page."})
 
         # If authorized, delete the application
@@ -770,6 +736,7 @@ def delete_application_employer(request, application_id):
 
     except JobApplication.DoesNotExist:
         return render(request, 'main/error.html', {"error_message": "Application does not exist."})
+
 
 @login_required
 @employee_required
@@ -803,50 +770,44 @@ def view_resume(request):
     return render(request, 'main/error.html', {"error_message": "Resume not found."})
 
 
+
 @login_required
-def view_employer_compatibility(request, company, employee):
+def view_employer_compatibility(request, company, user_id):
     try:
-        # Fetch the job details
         job = get_object_or_404(Job, company_name=company)
+        user_profile = get_object_or_404(UserProfile, user_id=user_id, role='employee')
 
-        # Fetch the employee's user profile
-        user_profile = get_object_or_404(UserProfile, user__username=employee, role="employee")
-
-        # Prepare job details
         job_details = {
             "education": job.education or "Not Specified",
-            "experience": job.experience or "0 - 0",  # Default to 0
-            "skills": [skill.strip() for skill in (job.skills or "").split(",")]
+            "experience": job.experience or "0 - 0 years",
+            "skills": job.skills.split(',') if job.skills else []
         }
 
-        # Prepare resume details
         resume_details = {
             "education": user_profile.education or "Not Specified",
             "experience_years": user_profile.experience_years or 0,
-            "skills": [skill.strip() for skill in (user_profile.skills or "").split(",")]
+            "skills": user_profile.skills.split(',') if user_profile.skills else []
         }
 
-        # Compare resume and job details
-        compatibility_matrix, overall_compatibility = compare_resume_with_job(resume_details, job_details)
+        try:
+            compatibility_matrix, overall_compatibility = compare_resume_with_job(resume_details, job_details)
+        except TypeError as e:
+            logger.error(f"Failed to unpack return from compare_resume_with_job: {e}")
+            return render(request, 'main/error.html', {"error_message": "Failed to process compatibility data."})
 
-        # Generate recommendations
         recommendations = generate_recommendations(compatibility_matrix, job_details)
 
-        # Render the report
         return render(request, 'main/employer_side_compatibility_display.html', {
-            "employee_name": user_profile.user.username,  # Display employee name
+            "employee_full_name": user_profile.full_name,  # Updated variable name here
             "company_name": company,
             "compatibility_matrix": compatibility_matrix,
             "overall_compatibility": overall_compatibility,
             "recommendations": recommendations
         })
-
     except Exception as e:
-        logger.error(f"Error in view_employer_compatibility: {e}")
-        return render(request, 'main/error.html', {"error_message": "An unexpected error occurred."})
-
-
-
+        logger.error(f"Error in view_employer_compatibility with {company} and {user_id}: {e}", exc_info=True)
+        return render(request, 'main/error.html', {"error_message": f"An unexpected error occurred: {str(e)}"})
+    
 
 @login_required
 def view_compatibility_report(request, job_id):
@@ -929,20 +890,18 @@ def compatibility_report_view(request):
 
         # Extract all unique companies and employees
         all_companies = list({entry["Job"].split(" - ")[0] for entry in filtered_report})
-        all_employees = list({entry["Candidate"] for entry in filtered_report})
-
-        logger.debug(f"All Companies: {all_companies}")
-        logger.debug(f"All Employees: {all_employees}")
+        all_employees = [{'full_name': e.full_name, 'user_id': e.user_id} for e in UserProfile.objects.filter(role='employee')]
 
         # Create the full similarity matrix
-        full_similarity_df = pd.DataFrame(index=all_companies, columns=all_employees, dtype=object).fillna({"score": 0, "job_id": None})
+        full_similarity_df = pd.DataFrame(index=all_companies, columns=[e['full_name'] for e in all_employees], dtype=object).fillna({"score": 0, "job_id": None})
 
         for entry in filtered_report:
             company = entry["Job"].split(" - ")[0]
-            employee = entry["Candidate"]
+            employee_full_name = entry["Candidate"]
             score = entry["Overall Compatibility"]
             job_id = entry.get("job_id")
-            full_similarity_df.at[company, employee] = {"score": score, "job_id": job_id}
+            user_id = next((e["user_id"] for e in all_employees if e["full_name"] == employee_full_name), None)
+            full_similarity_df.at[company, employee_full_name] = {"score": score, "job_id": job_id, "user_id": user_id}
 
         # Handle search query filtering
         filtered_chart_df = full_similarity_df
@@ -962,13 +921,13 @@ def compatibility_report_view(request):
         # Generate the bar chart
         bar_chart_path = None
         if not filtered_chart_df.empty:
-            chart_path = os.path.join(settings.STATICFILES_DIRS[0], f"reports/clustered_{employer.username}.png")
+            chart_path = os.path.join(settings.STATICFILES_DIRS[0], f"reports/clustered_{employer.userprofile.full_name}.png")
             generate_clustered_bar_chart(filtered_chart_df.applymap(lambda x: x["score"] if isinstance(x, dict) else 0).T, chart_path)
-            bar_chart_path = f"/static/reports/clustered_{employer.username}.png"
+            bar_chart_path = f"/static/reports/clustered_{employer.userprofile.full_name}.png"
 
         # Simplify matrices for rendering
         def simplify_matrix(matrix):
-            return {company: {employee: (data if isinstance(data, dict) else {"score": 0, "job_id": None}) for employee, data in employees.items()} for company, employees in matrix.items()}
+            return {company: {employee: (data if isinstance(data, dict) else {"score": 0, "job_id": None, "user_id": next((e["user_id"] for e in all_employees if e["full_name"] == employee), None)}) for employee, data in employees.items()} for company, employees in matrix.items()}
 
         full_similarity_matrix = simplify_matrix(full_similarity_df.to_dict(orient="index"))
         if filtered_similarity_matrix is not None:
@@ -993,7 +952,7 @@ def compatibility_report_view(request):
 @employee_required
 def employee_report_view(request):
     try:
-        current_employee = request.user.username.strip()
+        current_employee = request.user.userprofile.full_name.strip()  # Use full_name instead of username
 
         # Generate detailed report
         detailed_report = generate_employee_compatibility_report(request.user)
@@ -1014,7 +973,7 @@ def employee_report_view(request):
         employee_recommendations = recommendations.get(current_employee, [])
 
         # Generate clustered chart
-        clustered_chart_path = os.path.join(REPORTS_DIR, f'{current_employee}_compatibility_clustered_chart.png')
+        clustered_chart_path = os.path.join(REPORTS_DIR, f'{current_employee.replace(" ", "_")}_compatibility_clustered_chart.png')
         if not os.path.exists(REPORTS_DIR):
             os.makedirs(REPORTS_DIR)
         generate_employee_clustered_chart(similarity_df.loc[current_employee], clustered_chart_path)
@@ -1037,6 +996,7 @@ def get_url_safe_job_name(company_name):
     return company_name.replace(' ', '-').replace(',', 'comma').replace('.', 'period')
 
 
+
 @login_required
 @employee_required
 def view_employee_compatibility_report(request, job_name):
@@ -1044,13 +1004,13 @@ def view_employee_compatibility_report(request, job_name):
     Fetch and display a detailed compatibility report for a specific job.
     """
     try:
-        current_employee = request.user
+        current_employee = request.user.userprofile.full_name.strip()  # Use full_name instead of username
 
         # Replace hyphens with spaces and handle special characters to match the original company names
         job_name = job_name.replace('-', ' ').replace('comma', ',').replace('period', '.')
 
         # Generate the detailed report for the employee
-        detailed_report = generate_employee_compatibility_report(current_employee)
+        detailed_report = generate_employee_compatibility_report(request.user)
 
         # Log available jobs for debugging
         logger.debug(f"Available jobs: {[entry['Job'] for entry in detailed_report]}")
@@ -1101,7 +1061,7 @@ def view_employee_compatibility_report(request, job_name):
 
         # Render the compatibility report
         return render(request, 'main/employee_side_compatibility_display.html', {
-            "employee_name": current_employee.username,
+            "employee_name": current_employee,
             "company_name": company_name,
             "compatibility_matrix": compatibility_matrix,
             "overall_compatibility": overall_compatibility,
@@ -1120,7 +1080,7 @@ from django.utils.text import slugify
 @employee_required
 def view_compatibility_scores(request):
     try:
-        current_employee = request.user.username.strip()
+        current_employee = request.user.userprofile.full_name.strip()  # Use full_name instead of username
 
         # Generate detailed report
         detailed_report = generate_employee_compatibility_report(request.user)
@@ -1160,13 +1120,12 @@ def view_compatibility_scores(request):
 
         return render(request, 'main/view_compatibility_scores.html', {
             'compatibility_scores': slugified_scores,
-            'employee_name': current_employee,
+            'employee_name': current_employee,  # Update the context with full_name
         })
 
     except Exception as e:
         logger.error(f"Error in view_compatibility_scores: {e}")
         return render(request, 'main/error.html', {"error_message": str(e)})
-
 
 
 @login_required
@@ -1178,10 +1137,10 @@ def download_compatibility_scores(request):
         if not detailed_report:
             raise ValueError("No compatibility data available for download.")
 
-        # Build DataFrame
+        # Build DataFrame with full names
         similarity_df = pd.DataFrame(
             {entry["Job"]: entry["Overall Compatibility"] for entry in detailed_report},
-            index=[entry["Candidate"] for entry in detailed_report],
+            index=[request.user.userprofile.full_name]  # Use full_name instead of username
         ).T
 
         # Prepare CSV response
@@ -1194,54 +1153,55 @@ def download_compatibility_scores(request):
         logger.error(f"Error in download_compatibility_scores: {e}")
         return render(request, 'main/error.html', {"error_message": str(e)})
 
+
+
 @login_required
 def employer_side_openaiCS(request):
     # Set OpenAI API key
     openai.api_key = settings.OPENAI_API_KEY
 
-    # Excluded usernames
+    # Excluded user full names
     EXCLUDED_USERS = ["vinaybharadwaj", "admin"]
 
     # Fetch all posted jobs for the employer
     employer_jobs = Job.objects.filter(employer=request.user)
     compatibility_data = {}
-    employees_set = set()  # To collect unique employee usernames
+    employees_set = set()  # To collect unique employee full names
 
     for job in employer_jobs:
         compatibility_data[job.company_name] = {}
 
-        # Fetch employees for compatibility scoring
-        employees = UserProfile.objects.filter(role='employee').exclude(user__username__in=EXCLUDED_USERS)
+        # Fetch employees for compatibility scoring, excluding by full_name
+        employees = UserProfile.objects.filter(role='employee').exclude(full_name__in=EXCLUDED_USERS)
 
         for employee in employees:
             # Initialize entry for each employee
-            username = employee.user.username
-            employees_set.add(username)
-            compatibility_data[job.company_name][username] = None  # Initialize with None
+            full_name = employee.full_name.strip()
+            employees_set.add(full_name)
+            compatibility_data[job.company_name][full_name] = None  # Initialize with None
 
             try:
-                # Call OpenAI API to generate compatibility score
+                # Call OpenAI API
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
                         {"role": "system", "content": "You are an AI compatibility scorer."},
-                        {"role": "user", "content": f"Score compatibility between job: {job.job_description} "
-                                                    f"and employee with skills: {employee.skills}. Return a score from 0 to 100."}
+                        {"role": "user", "content": f"Score compatibility between job: {job.job_description} and employee with skills: {employee.skills}. Return a score from 0 to 100."}
                     ]
                 )
                 score = response['choices'][0]['message']['content'].strip()
 
                 # Store compatibility score
-                compatibility_data[job.company_name][username] = float(score)
+                compatibility_data[job.company_name][full_name] = float(score)
 
             except ValueError as e:
-                compatibility_data[job.company_name][username] = f"Error: {str(e)}"
+                compatibility_data[job.company_name][full_name] = f"Error: {str(e)}"
             except Exception as e:
-                compatibility_data[job.company_name][username] = f"API Error: {str(e)}"
+                compatibility_data[job.company_name][full_name] = f"API Error: {str(e)}"
 
     return render(request, 'main/employer_side_openaiCS.html', {
         'compatibility_data': compatibility_data,
-        'employees_headers': sorted(employees_set),  # Pass sorted employee usernames
+        'employees_headers': sorted(employees_set),  # Pass sorted employee full names
     })
 
 
@@ -1258,7 +1218,7 @@ def employer_side_openaiCR(request, job, employee):
 
     # Fetch job and employee details
     job_obj = get_object_or_404(Job, company_name=job)
-    employee_obj = get_object_or_404(UserProfile, user__username=employee)
+    employee_obj = get_object_or_404(UserProfile, full_name=employee)  # Use full_name to fetch
 
     # Call OpenAI for detailed analysis
     try:
@@ -1279,7 +1239,7 @@ def employer_side_openaiCR(request, job, employee):
         template = 'main/pdf_template.html'
         context = {
             'job': job,
-            'employee': employee,
+            'employee_full_name': employee_obj.full_name,  # Ensure this is used for rendering
             'compatibility_details': detailed_report
         }
         html = render_to_string(template, context)
@@ -1293,7 +1253,7 @@ def employer_side_openaiCR(request, job, employee):
 
     return render(request, 'main/employer_side_openaiCR.html', {
         'job': job,
-        'employee': employee,
+        'employee_full_name': employee_obj.full_name,  # Correctly pass full name
         'compatibility_details': detailed_report
     })
 
@@ -1335,18 +1295,18 @@ def employee_side_openaiCS(request):
                 score = float(match.group(1))
                 compatibility_data[job.company_name] = score
             else:
-                compatibility_data[job.company_name] = f"Error: Unable to parse score. Response: {raw_score}"
+                compatibility_data[job.company_name] = "Error: No valid score found in the API response."
 
-        except ValueError as e:
-            compatibility_data[job.company_name] = f"Error: {str(e)}"
         except Exception as e:
-            compatibility_data[job.company_name] = f"API Error: {str(e)}"
+            logger.error(f"OpenAI API error for job {job.company_name}: {str(e)}")
+            compatibility_data[job.company_name] = "Error: Unable to fetch compatibility score."
 
     # Render the template with compatibility data for the logged-in employee
     return render(request, 'main/employee_side_openaiCS.html', {
         'compatibility_data': compatibility_data,
-        'employee': request.user.username,  # Pass the logged-in employee's username
+        'employee': logged_in_employee.full_name,  # Pass the logged-in employee's full_name
     })
+
 
 
 from reportlab.lib.pagesizes import letter
@@ -1354,10 +1314,14 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from io import BytesIO
 
+from urllib.parse import unquote
+
 @login_required
 def employee_side_openaiCR(request, job, employee):
-    job = get_object_or_404(Job, company_name=job)
-    employee_profile = get_object_or_404(UserProfile, user__username=employee)
+    employee = unquote(employee)  # Decode URL-encoded string
+
+    job_obj = get_object_or_404(Job, company_name=job)
+    employee_profile = get_object_or_404(UserProfile, full_name=employee)
 
     # Call OpenAI to generate detailed compatibility analysis
     try:
@@ -1365,7 +1329,7 @@ def employee_side_openaiCR(request, job, employee):
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are an AI compatibility scorer providing detailed analysis."},
-                {"role": "user", "content": f"Generate a detailed compatibility report between job: {job.job_description} "
+                {"role": "user", "content": f"Generate a detailed compatibility report between job: {job_obj.job_description} "
                                             f"and employee with skills: {employee_profile.skills}. Highlight strengths, gaps, "
                                             f"and areas for improvement. Provide recommendations."}
             ]
@@ -1374,34 +1338,40 @@ def employee_side_openaiCR(request, job, employee):
     except Exception as e:
         detailed_report = f"Error generating report: {str(e)}"
 
+    # Handle PDF download if requested
     if "download" in request.GET:
-        # Generate PDF
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = []
+        try:
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
 
-        # Add content to the PDF
-        story.append(Paragraph(f"<b>Detailed Compatibility Report</b>", styles['Title']))
-        story.append(Spacer(1, 12))
-        story.append(Paragraph(f"<b>Job:</b> {job.company_name}", styles['Normal']))
-        story.append(Paragraph(f"<b>Employee:</b> {employee}", styles['Normal']))
-        story.append(Spacer(1, 12))
-
-        # Add report sections
-        sections = ["Strengths", "Gap Analysis", "Areas for Improvement", "Recommendations"]
-        for section in sections:
-            story.append(Paragraph(f"<b>{section}:</b>", styles['Heading2']))
-            story.append(Paragraph(detailed_report, styles['Normal']))
+            # Add content to the PDF
+            story.append(Paragraph("<b>Detailed Compatibility Report</b>", styles['Title']))
+            story.append(Spacer(1, 12))
+            story.append(Paragraph(f"<b>Job:</b> {job_obj.company_name}", styles['Normal']))
+            story.append(Paragraph(f"<b>Employee:</b> {employee_profile.full_name}", styles['Normal']))
             story.append(Spacer(1, 12))
 
-        doc.build(story)
-        buffer.seek(0)
-        return HttpResponse(buffer, content_type='application/pdf')
+            # Add report sections
+            sections = ["Detailed Analysis"]
+            for section in sections:
+                story.append(Paragraph(f"<b>{section}:</b>", styles['Heading2']))
+                story.append(Paragraph(detailed_report, styles['Normal']))
+                story.append(Spacer(1, 12))
 
+            doc.build(story)
+            buffer.seek(0)
+
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Compatibility_Report_{job_obj.company_name}_{employee_profile.full_name}.pdf"'
+            return response
+        except Exception as e:
+            return render(request, 'main/error.html', {"error_message": f"PDF generation failed: {str(e)}"})
+
+    # Render compatibility report to the template
     return render(request, 'main/employee_side_openaiCR.html', {
-        'company_name': job.company_name,
-        'employee_name': employee,
-        'compatibility_score': "N/A",
+        'company_name': job_obj.company_name,
+        'employee_name': employee_profile.full_name,  # Correctly pass full name
         'detailed_report': detailed_report,
     })

@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4" style="font-weight: bold; color: #4b6584;">Compatibility Report</h1>
+    <h1 class="text-center mb-4" style="font-weight: bold; color: #141d29;">Compatibility Report</h1>
     <p class="text-muted text-center">Review the compatibility of job postings and candidate resumes below.</p>
 
     <!-- Clustered Bar Chart -->
@@ -34,6 +34,9 @@
     <!-- Filtered Results -->
     {% if search_query %}
     <h4 class="text-center mt-5 mb-3" style="font-weight: bold; color: #4b6584;">Filtered Results</h4>
+    <div class="mb-3 text-center">
+        <input type="number" id="filteredThresholdInput" placeholder="Enter threshold (e.g., 70)" class="form-control w-25 d-inline-block" style="border-radius: 25px; padding: 10px 15px; font-size: 1rem;">
+    </div>
     {% if filtered_similarity_matrix %}
     <div class="table-responsive">
         <table class="table table-striped table-hover table-bordered align-middle" style="background-color: #f8f9fa;">
@@ -41,7 +44,7 @@
                 <tr>
                     <th>Company Name</th>
                     {% for employee in employees %}
-                    <th>{{ employee }}</th>
+                    <th>{{ employee.full_name }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -50,7 +53,11 @@
                 <tr>
                     <td>{{ company }}</td>
                     {% for employee, score_data in scores.items %}
-                    <td>{{ score_data.score|floatformat:2 }}</td>
+                    <td class="filtered-score" data-score="{{ score_data.score }}">
+                        <a href="{% url 'view_employer_compatibility' company=company user_id=score_data.user_id %}" class="text-decoration-none score-link" data-bs-toggle="tooltip" title="{{ score_data.score|floatformat:2 }}">
+                            <span class="score-text">{{ score_data.score|floatformat:2 }}</span>
+                        </a>
+                    </td>
                     {% endfor %}
                 </tr>
                 {% endfor %}
@@ -64,13 +71,16 @@
 
     <!-- Full Table -->
     <h4 class="text-center mt-5 mb-3" style="font-weight: bold; color: #4b6584;">All Companies</h4>
+    <div class="mb-3 text-center">
+        <input type="number" id="fullThresholdInput" placeholder="Enter threshold (e.g., 70)" class="form-control w-25 d-inline-block" style="border-radius: 25px; padding: 10px 15px; font-size: 1rem;">
+    </div>
     <div class="table-responsive">
         <table class="table table-striped table-hover table-bordered align-middle" style="background-color: #f8f9fa;">
             <thead>
                 <tr>
                     <th>Company Name</th>
                     {% for employee in employees %}
-                    <th>{{ employee }}</th>
+                    <th>{{ employee.full_name }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -79,14 +89,10 @@
                 <tr>
                     <td>{{ company }}</td>
                     {% for employee, score_data in scores.items %}
-                    <td>
-                        {% if score_data.job_id %}
-                        <a href="{% url 'view_employer_compatibility' company=company employee=employee %}" class="text-decoration-none">
-                            {{ score_data.score|floatformat:2 }}
+                    <td class="full-score" data-score="{{ score_data.score }}">
+                        <a href="{% url 'view_employer_compatibility' company=company user_id=score_data.user_id %}" class="text-decoration-none score-link" data-bs-toggle="tooltip" title="{{ score_data.score|floatformat:2 }}">
+                            <span class="score-text">{{ score_data.score|floatformat:2 }}</span>
                         </a>
-                        {% else %}
-                        <span>{{ score_data.score|floatformat:2 }}</span>
-                        {% endif %}
                     </td>
                     {% endfor %}
                 </tr>
@@ -95,4 +101,77 @@
         </table>
     </div>
 </div>
+
+<!-- JavaScript for Independent Threshold Functionality -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up event listeners if elements exist
+        var filteredInput = document.getElementById('filteredThresholdInput');
+        var fullInput = document.getElementById('fullThresholdInput');
+
+        if (filteredInput) {
+            filteredInput.addEventListener('input', function() {
+                updateScores(this.value, '.filtered-score');
+            });
+        }
+
+        if (fullInput) {
+            fullInput.addEventListener('input', function() {
+                updateScores(this.value, '.full-score');
+            });
+        }
+
+        // Make all scores bold by default
+        document.querySelectorAll('.score-text').forEach(function(scoreText) {
+            scoreText.style.fontWeight = 'bold';
+        });
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+
+    function updateScores(threshold, scoreClass) {
+        var thresholdValue = parseFloat(threshold);
+        var scores = document.querySelectorAll(scoreClass);
+
+        scores.forEach(function(score) {
+            var value = parseFloat(score.getAttribute('data-score'));
+            var scoreText = score.querySelector('.score-text');
+            var link = score.querySelector('.score-link');
+
+            if (threshold === '' || isNaN(thresholdValue)) {
+                // Reset to original style and value if threshold is cleared
+                scoreText.textContent = parseFloat(score.getAttribute('data-score')).toFixed(2);
+                link.setAttribute('href', link.getAttribute('data-original-href')); // Restore the original href
+                link.style.color = ''; // Reset link color to default (blue)
+                scoreText.style.color = 'inherit';
+                link.setAttribute('title', scoreText.textContent); // Update tooltip text
+            } else if (value < thresholdValue) {
+                link.removeAttribute('href'); // Remove the link for scores below threshold
+                scoreText.textContent = 'N/A';
+                scoreText.style.color = '#8b0000'; // Dark red color for low scores
+                link.setAttribute('title', 'Below Threshold'); // Update tooltip text
+            } else {
+                link.setAttribute('href', link.getAttribute('data-original-href')); // Ensure the link is active for scores above threshold
+                scoreText.textContent = value.toFixed(2);
+                scoreText.style.color = '#006400'; // Dark green color for high scores
+                link.setAttribute('title', 'Above Threshold'); // Update tooltip text
+            }
+        });
+
+        // Refresh tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+
+    // Save the original href for all score links
+    document.querySelectorAll('.score-link').forEach(function(link) {
+        link.setAttribute('data-original-href', link.getAttribute('href'));
+    });
+</script>
 {% endblock %}

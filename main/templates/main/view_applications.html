@@ -26,7 +26,7 @@
         <tbody>
             {% for application in applications %}
             <tr>
-                <td>{{ application.user.get_full_name }}</td>
+                <td>{{ application.user.userprofile.full_name }}</td>
                 <td>{{ application.user.userprofile.contact_number }}</td>
                 <td>{{ application.user.email }}</td>
                 <td>{{ application.user.userprofile.skills }}</td>

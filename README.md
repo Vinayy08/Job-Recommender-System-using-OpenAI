@@ -47,9 +47,16 @@ A Django-based web application designed to recommend jobs to employees and candi
 ## Installation
 
 ### Prerequisites:
-1. Python (>=3.8)
+1. Python (>=3.8 <= 3.12)
 2. Django (>=4.0)
 3. Virtualenv (recommended)
+4. Install Visual Studio Build Tools https://visualstudio.microsoft.com/
+
+
+and add these paths , for eg refer 
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\bin\Hostx64\x64
+C:\Program Files (x86)\Windows Kits\10\bin\x64
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin
 
 ### Steps:
 
@@ -61,19 +68,9 @@ A Django-based web application designed to recommend jobs to employees and candi
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
 3. Install dependencies:
-   pip install django 
-   pip install matplotlib 
-   pip install seaborn 
-   pip install openai 
-   pip install xhtml2pdf 
-   pip install Pillow
-   pip install django-widget-tweaks
-   pip install scikit-learn
-   pip install spacy
-   python -m spacy download en_core_web_sm
-   pip install PyPDF2
-   pip install python-docx
-   pip install fuzzywuzzy
+pip install django matplotlib seaborn openai xhtml2pdf Pillow django-widget-tweaks scikit-learn spacy PyPDF2 python-docx fuzzywuzzy
+
+python -m spacy download en_core_web_sm
 4. Apply database migrations:
    python manage.py makemigrations
    python manage.py migrate

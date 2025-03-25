@@ -72,12 +72,14 @@ or
 pip install django matplotlib seaborn openai xhtml2pdf Pillow django-widget-tweaks scikit-learn spacy PyPDF2 python-docx fuzzywuzzy python-Levenshtein
 
 python -m spacy download en_core_web_sm
+
 4. Apply database migrations:
    python manage.py makemigrations
    python manage.py migrate
-5. Run the development server:
-   python manage.py runserver
-6. Access the application at http://127.0.0.1:8000/
+   
+6. Run the development server: python manage.py runserver
+   
+8. Access the application at http://127.0.0.1:8000/
 
 ## File Structure
 job_recommender/

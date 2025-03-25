@@ -67,8 +67,9 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin
 2. Create a virtual environment and activate it:
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-3. Install dependencies:
-pip install django matplotlib seaborn openai xhtml2pdf Pillow django-widget-tweaks scikit-learn spacy PyPDF2 python-docx fuzzywuzzy
+3. Install dependencies: pip install -r requirements.txt
+or 
+pip install django matplotlib seaborn openai xhtml2pdf Pillow django-widget-tweaks scikit-learn spacy PyPDF2 python-docx fuzzywuzzy python-Levenshtein
 
 python -m spacy download en_core_web_sm
 4. Apply database migrations:

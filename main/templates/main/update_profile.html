@@ -58,6 +58,19 @@
                     <textarea name="experience_projects" id="experience_projects" class="form-control" rows="4" placeholder="Describe your experience or projects">{{ user_profile.experience_projects }}</textarea>
                 </div>
 
+                <!-- Preferred Location -->
+                <div class="mb-3">
+                    <label for="preferred_location" class="form-label fw-bold">Preferred Location</label>
+                    <input type="text" name="preferred_location" id="preferred_location" value="{{ user_profile.preferred_location }}" class="form-control" placeholder="Enter your preferred location">
+                </div>
+
+                <!-- Expected Salary -->
+                <div class="mb-3">
+                    <label for="expected_salary" class="form-label fw-bold">Expected Salary</label>
+                    <input type="number" name="expected_salary" id="expected_salary" value="{{ user_profile.expected_salary }}" class="form-control" placeholder="Enter your expected salary">
+                </div>
+
+
                 <!-- Resume -->
                 <div class="mb-3">
                     <label for="resume" class="form-label fw-bold">Upload Resume</label>
@@ -68,6 +81,12 @@
                     {% else %}
                     <small class="form-text text-muted">No resume uploaded.</small>
                     {% endif %}
+                </div>
+
+                <!-- Testimonials -->
+                <div class="mb-3">
+                    <label for="testimonials" class="form-label fw-bold">Testimonials</label>
+                    <textarea name="testimonials" id="testimonials" class="form-control" rows="3" placeholder="Enter any testimonials you have received">{{ user_profile.testimonials }}</textarea>
                 </div>
 
                 <!-- Change Password -->

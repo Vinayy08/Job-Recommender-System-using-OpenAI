@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Manage Certifications{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2 class="mb-4">My Certifications</h2>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    Add New Certification
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Certification Name</label>
+                                {{ form.certificate_name }}
+                                {{ form.certificate_name.errors }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Issued Date</label>
+                                {{ form.issued_date }}
+                                {{ form.issued_date.errors }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Issuing Organization (Optional)</label>
+                                {{ form.issuing_organization }}
+                                {{ form.issuing_organization.errors }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Certification Document</label>
+                                {{ form.certificate_file }}
+                                <small class="form-text text-muted">
+                                    Upload PDF, JPG, or PNG (max size: 5MB)
+                                </small>
+                                {{ form.certificate_file.errors }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label>Description (Optional)</label>
+                            {{ form.description }}
+                            {{ form.description.errors }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Add Certification</button>
+                    </form>
+                </div>
+            </div>
+
+            <h3 class="mb-3">Your Current Certifications</h3>
+            {% if certifications %}
+                <div class="list-group">
+                    {% for certification in certifications %}
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ certification.certificate_name }}</h5>
+                                <small>Issued: {{ certification.issued_date }}</small>
+                            </div>
+                            <p class="mb-1">
+                                {% if certification.issuing_organization %}
+                                    Issued by {{ certification.issuing_organization }}
+                                {% endif %}
+                            </p>
+                            {% if certification.description %}
+                                <p class="text-muted mb-2">
+                                    {{ certification.description }}
+                                </p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    <a href="{{ certification.certificate_file.url }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        View Certificate
+                                    </a>
+                                    <form method="POST" 
+                                          action="{% url 'delete_certification' certification.id %}" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('Are you sure you want to delete this certification?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    You haven't added any certifications yet.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

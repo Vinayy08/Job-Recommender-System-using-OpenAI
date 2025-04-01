@@ -1,7 +1,30 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
+<style>
+    .container {
+        max-width: 800px; /* Reduced container width for better fitting */
+    }
+    .card {
+        margin-top: 2rem;
+        border-radius: 0.75rem; /* Smoothed corners for a softer look */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+    }
+    .card-header {
+        padding: 1rem 1.25rem; /* Reduced padding for header */
+    }
+    .card-body {
+        padding: 1.25rem; /* Consistent padding around card body */
+    }
+    .alert {
+        margin-top: 1rem; /* Added top margin to the alert for better spacing */
+        padding: 0.75rem 1.25rem; /* Reduced padding for the alert box */
+    }
+    .btn-success {
+        margin-top: 1rem; /* Added margin top for the button */
+    }
+</style>
+<div class="container">
     <div class="card shadow-lg border-0">
         <div class="card-header bg-primary text-white text-center">
             <h2>Welcome, {{ employer_name }}!</h2> <!-- Confirm that this is using the correct context key -->

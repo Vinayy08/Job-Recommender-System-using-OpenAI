@@ -110,6 +110,63 @@ def home(request):
         return redirect('login')
 
 
+@login_required
+def view_employee_profiles(request):
+    # Get search query
+    search_query = request.GET.get('search', '').strip()
+
+    # Get employee profiles (excluding employers) with related user
+    employee_profiles = UserProfile.objects.filter(role='employee').select_related('user').order_by('-experience_years')
+
+    # Filter based on search query - expanded to more fields
+    if search_query:
+        employee_profiles = employee_profiles.filter(
+            Q(full_name__icontains=search_query) |
+            Q(skills__icontains=search_query) |
+            Q(preferred_location__icontains=search_query) |
+            Q(contact_email__icontains=search_query) |
+            Q(contact_number__icontains=search_query) |
+            Q(education__icontains=search_query) |
+            Q(experience_years__icontains=search_query) |
+            Q(experience_projects__icontains=search_query) |
+            Q(links__icontains=search_query) |
+            Q(testimonials__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+
+    # Paginate the results
+    paginator = Paginator(employee_profiles, 10)  # Show 10 profiles per page
+    page_number = request.GET.get('page')
+    profiles_page = paginator.get_page(page_number)
+
+    return render(request, 'main/view_employee_profiles.html', {
+        'employee_profiles': profiles_page,
+        'search_query': search_query,
+    })
+
+
+@login_required
+def get_certificate_details(request, certificate_id):
+    """
+    Fetch and return details of a specific certificate
+    """
+    try:
+        certificate = EmployeeCertification.objects.get(id=certificate_id)
+        
+        # Prepare certificate details as a dictionary
+        certificate_details = {
+            'certificate_name': certificate.certificate_name,
+            'issued_date': certificate.issued_date.strftime('%B %d, %Y'),
+            'issuing_organization': certificate.issuing_organization,
+            'description': certificate.description,
+            'certificate_file': certificate.certificate_file.url if certificate.certificate_file else None
+        }
+        
+        return JsonResponse(certificate_details)
+    
+    except EmployeeCertification.DoesNotExist:
+        return JsonResponse({'error': 'Certificate not found'}, status=404)
+
 
 @login_required
 def employer_dashboard(request):
@@ -161,11 +218,18 @@ def edit_job(request, job_id):
 @login_required
 @employer_required
 def delete_job(request, job_id):
-    job = get_object_or_404(Job, id=job_id, employer=request.user)
+    job = get_object_or_404(Job, id=job_id)
+    
+    # Store the company name before deletion
+    company_name = job.company_name
+    
+    # Delete the job
     job.delete()
-    messages.success(request, "Job deleted successfully!")
+    
+    # Add a success message with the company name
+    messages.success(request, f'Job from "{company_name}" has been successfully deleted.')
+    
     return redirect('employer_dashboard')
-
 
 
 @login_required
@@ -307,24 +371,34 @@ def update_employee_profile(request):
         skills = request.POST.get('skills', '').strip()
         education = request.POST.get('education', '').strip()
         experience_projects = request.POST.get('experience_projects', '').strip()
+        preferred_location = request.POST.get('preferred_location', '').strip()
+        testimonials = request.POST.get('testimonials', '').strip()
         resume = request.FILES.get('resume', None)
         old_password = request.POST.get('old_password', '').strip()
         new_password = request.POST.get('new_password', '').strip()
+        
+        # Safe conversion of expected_salary
+        try:
+            expected_salary = request.POST.get('expected_salary')
+            if expected_salary:
+                expected_salary = int(expected_salary)
+                user_profile.expected_salary = expected_salary
+        except ValueError:
+            messages.error(request, "Invalid expected salary entered. Please enter a valid number.")
+            return redirect('update_profile')
 
         try:
-            # Update user details
             if name:
                 user_profile.full_name = name
             if email and email != request.user.email:
                 if User.objects.filter(email=email).exists():
-                    messages.error(request, "This email is already in use by another account.")
+                    messages.error(request, "Email already in use.")
                     return redirect('update_profile')
                 request.user.email = email
 
-            # Update contact number if changed and not in use
             if contact_number and contact_number != user_profile.contact_number:
-                if UserProfile.objects.filter(contact_number=contact_number).exclude(user=request.user).exists():
-                    messages.error(request, "This contact number is already in use by another account.")
+                if UserProfile.objects.filter(contact_number=contact_number).exists():
+                    messages.error(request, "Contact number already in use.")
                     return redirect('update_profile')
                 user_profile.contact_number = contact_number
 
@@ -332,31 +406,20 @@ def update_employee_profile(request):
             user_profile.skills = skills
             user_profile.education = education
             user_profile.experience_projects = experience_projects
+            user_profile.preferred_location = preferred_location
+            user_profile.testimonials = testimonials
 
             if resume:
-                # Assume parse_resume and extract_data_from_resume are defined
                 resume_text = parse_resume(resume)
                 extracted_data = extract_data_from_resume(resume_text)
-
-                # Updating profile details from extracted resume data
                 user_profile.resume = resume
-                user_profile.skills = extracted_data.get("skills", user_profile.skills)
-                user_profile.education = extracted_data.get("education", user_profile.education)
-                user_profile.experience_projects = extracted_data.get("experience_projects", user_profile.experience_projects)
-                user_profile.experience_years = extracted_data.get("experience_years", user_profile.experience_years)
-                user_profile.contact_number = extracted_data.get("contact_number", user_profile.contact_number)
-                user_profile.links = extracted_data.get("links", user_profile.links)
+                user_profile.skills = extracted_data.get('skills', user_profile.skills)
+                user_profile.education = extracted_data.get('education', user_profile.education)
+                user_profile.experience_projects = extracted_data.get('experience_projects', user_profile.experience_projects)
+                user_profile.experience_years = extracted_data.get('experience_years', user_profile.experience_years)
+                user_profile.contact_number = extracted_data.get('contact_number', user_profile.contact_number)
+                user_profile.links = extracted_data.get('links', user_profile.links)
 
-                # Update full_name and email from extracted data if present
-                if 'name' in extracted_data:
-                    user_profile.full_name = extracted_data['name']
-                if 'email' in extracted_data and extracted_data['email'] != request.user.email:
-                    if User.objects.filter(email=extracted_data['email']).exists():
-                        messages.error(request, "This email is already in use by another account.")
-                        return redirect('update_profile')
-                    request.user.email = extracted_data['email']
-
-            # Handle password change
             if old_password and new_password:
                 if request.user.check_password(old_password):
                     request.user.set_password(new_password)
@@ -365,12 +428,11 @@ def update_employee_profile(request):
                     logout(request)
                     return redirect('login')
                 else:
-                    messages.error(request, "Old password is incorrect.")
+                    messages.error(request, "Incorrect old password.")
 
-            # Save the user and user profile objects
             user_profile.save()
-            request.user.save()  # Ensure user object is saved after all changes
-            messages.success(request, "Profile updated successfully!")
+            request.user.save()
+            messages.success(request, "Profile updated successfully.")
             return redirect('update_profile')
 
         except Exception as e:
@@ -666,25 +728,49 @@ def apply_for_job(request, job_id):
     return JsonResponse({'message': 'Application successful'}, status=200)
 
 
+
+from django.db.models import Prefetch
+from main.models import EmployeeCertification
+
 @login_required
 @employer_required
 def view_all_applications(request):
     """
     View all applications across all jobs posted by the logged-in employer.
+    Optimized with select_related and prefetch_related for user, profile, and certifications.
     """
-    applications = JobApplication.objects.filter(job__employer=request.user)
+    applications = JobApplication.objects.filter(job__employer=request.user).select_related(
+        'job', 'user__userprofile'
+    ).prefetch_related(
+        Prefetch('user__certifications', queryset=EmployeeCertification.objects.all())
+    )
     return render(request, 'main/view_applications.html', {'applications': applications})
 
 
 @login_required
 @employer_required
 def view_applications(request, job_id=None):
+    """
+    View applications for a specific job (if job_id is provided) or all jobs for the employer.
+    """
     try:
-        # Filter applications by the specified job, if provided
         if job_id:
-            applications = JobApplication.objects.filter(job__id=job_id, job__employer=request.user)
+            applications = JobApplication.objects.filter(
+                job__id=job_id,
+                job__employer=request.user
+            ).select_related(
+                'job', 'user__userprofile'
+            ).prefetch_related(
+                Prefetch('user__certifications', queryset=EmployeeCertification.objects.all())
+            )
         else:
-            applications = JobApplication.objects.filter(job__employer=request.user)
+            applications = JobApplication.objects.filter(
+                job__employer=request.user
+            ).select_related(
+                'job', 'user__userprofile'
+            ).prefetch_related(
+                Prefetch('user__certifications', queryset=EmployeeCertification.objects.all())
+            )
 
         return render(request, 'main/view_applications.html', {'applications': applications})
     except Exception as e:
@@ -770,44 +856,60 @@ def view_resume(request):
     return render(request, 'main/error.html', {"error_message": "Resume not found."})
 
 
-
 @login_required
 def view_employer_compatibility(request, company, user_id):
     try:
         job = get_object_or_404(Job, company_name=company)
         user_profile = get_object_or_404(UserProfile, user_id=user_id, role='employee')
 
+        # Determine the email to display
+        contact_email = (
+            user_profile.contact_email or  # First, try UserProfile's contact_email
+            user_profile.user.email  # Fallback to the associated User's email
+        )
+
+        user_profile = UserProfile.objects.select_related('user').prefetch_related('user__certifications').get(user_id=user_id, role='employee')
+
+
+        # Refresh job and user profile data from the database to ensure they are up-to-date
+        job.refresh_from_db()
+        user_profile.refresh_from_db()
+
         job_details = {
             "education": job.education or "Not Specified",
             "experience": job.experience or "0 - 0 years",
-            "skills": job.skills.split(',') if job.skills else []
+            "skills": [skill.strip() for skill in (job.skills or "").split(",") if skill.strip()] or ["Not Specified"]
         }
 
         resume_details = {
             "education": user_profile.education or "Not Specified",
             "experience_years": user_profile.experience_years or 0,
-            "skills": user_profile.skills.split(',') if user_profile.skills else []
+            "skills": [skill.strip() for skill in (user_profile.skills or "").split(",") if skill.strip()] or ["Not Specified"]
         }
 
         try:
-            compatibility_matrix, overall_compatibility = compare_resume_with_job(resume_details, job_details)
-        except TypeError as e:
-            logger.error(f"Failed to unpack return from compare_resume_with_job: {e}")
+            compatibility_matrix, scores = compare_resume_with_job(resume_details, job_details)
+            overall_compatibility = scores  # Pass the entire scores dictionary
+        except Exception as e:
+            logger.error(f"Failed to process compatibility data: {e}")
             return render(request, 'main/error.html', {"error_message": "Failed to process compatibility data."})
 
         recommendations = generate_recommendations(compatibility_matrix, job_details)
 
         return render(request, 'main/employer_side_compatibility_display.html', {
-            "employee_full_name": user_profile.full_name,  # Updated variable name here
+            "employee_full_name": user_profile.full_name,
             "company_name": company,
             "compatibility_matrix": compatibility_matrix,
             "overall_compatibility": overall_compatibility,
-            "recommendations": recommendations
+            "recommendations": recommendations,
+            "user_profile": user_profile,
+            "contact_email": contact_email,
+            "contact_number": user_profile.contact_number or "N/A"
         })
     except Exception as e:
         logger.error(f"Error in view_employer_compatibility with {company} and {user_id}: {e}", exc_info=True)
         return render(request, 'main/error.html', {"error_message": f"An unexpected error occurred: {str(e)}"})
-    
+
 
 @login_required
 def view_compatibility_report(request, job_id):
@@ -946,6 +1048,8 @@ def compatibility_report_view(request):
     except Exception as e:
         logger.error(f"Error: {e}")
         return render(request, 'main/error.html', {"error_message": "An error occurred while processing the request."})
+
+
 
 
 @login_required
@@ -1375,3 +1479,398 @@ def employee_side_openaiCR(request, job, employee):
         'employee_name': employee_profile.full_name,  # Correctly pass full name
         'detailed_report': detailed_report,
     })
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from .models import EmployeeCertification
+from .forms import EmployeeCertificationForm
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'userprofile'))
+def manage_certifications(request):
+    """
+    View to manage employee certifications
+    """
+    # Get all certifications for the current user
+    certifications = EmployeeCertification.objects.filter(user=request.user)
+    
+    if request.method == 'POST':
+        form = EmployeeCertificationForm(request.POST, request.FILES)
+        if form.is_valid():
+            certification = form.save(commit=False)
+            certification.user = request.user
+            certification.save()
+            
+            messages.success(request, f"Certification '{certification.certificate_name}' added successfully!")
+            return redirect('manage_certifications')
+    else:
+        form = EmployeeCertificationForm()
+    
+    return render(request, 'main/manage_certifications.html', {
+        'certifications': certifications,
+        'form': form
+    })
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'userprofile'))
+def delete_certification(request, certification_id):
+    """
+    View to delete a specific certification
+    """
+    certification = get_object_or_404(
+        EmployeeCertification, 
+        id=certification_id, 
+        user=request.user
+    )
+    
+    if request.method == 'POST':
+        certification.delete()
+        messages.success(request, f"Certification '{certification.certificate_name}' deleted successfully!")
+        return redirect('manage_certifications')
+    
+    return render(request, 'main/confirm_delete_certification.html', {
+        'certification': certification
+    })
+
+# Employee Compatibility Report using OpenAI
+
+import tempfile
+import logging
+import os
+import PyPDF2
+import pytesseract
+import docx2txt
+from PIL import Image
+from openai import OpenAI, APIError, AuthenticationError, RateLimitError
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Tesseract Path Configuration
+TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+if os.path.exists(TESSERACT_PATH):
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+else:
+    logger.warning(f"Tesseract not found at {TESSERACT_PATH}. Please check the installation.")
+
+def extract_text_from_file(file):
+    """
+    Extract text from various file types
+    Supports PDF, DOCX, JPG, PNG
+    """
+    # Determine file extension
+    file_ext = os.path.splitext(file.name)[1].lower()
+    
+    try:
+        # Temporary file to work with
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as temp_file:
+            for chunk in file.chunks():
+                temp_file.write(chunk)
+            temp_file.close()
+        
+        # Extract text based on file type
+        text = ''
+        if file_ext == '.pdf':
+            try:
+                with open(temp_file.name, 'rb') as pdf_file:
+                    pdf_reader = PyPDF2.PdfReader(pdf_file)
+                    text = ''
+                    for page in pdf_reader.pages:
+                        text += page.extract_text() or ''
+            except Exception as pdf_error:
+                logger.error(f"PDF extraction error: {pdf_error}")
+        
+        elif file_ext == '.docx':
+            try:
+                text = docx2txt.process(temp_file.name) or ''
+            except Exception as docx_error:
+                logger.error(f"DOCX extraction error: {docx_error}")
+        
+        elif file_ext in ['.jpg', '.jpeg', '.png']:
+            try:
+                # Use Tesseract OCR for image files
+                image = Image.open(temp_file.name)
+                text = pytesseract.image_to_string(image) or ''
+            except Exception as ocr_error:
+                logger.error(f"OCR extraction error: {ocr_error}")
+        
+        else:
+            text = ''
+        
+        # Clean up temporary file
+        os.unlink(temp_file.name)
+        
+        return text.strip()
+    
+    except Exception as e:
+        logger.error(f"Error extracting text: {e}")
+        return ''
+
+# Updated employee_compatibility view function
+
+@login_required
+def employee_compatibility(request):
+    context = {}
+    
+    if request.method == 'POST':
+        # Validate OpenAI API key
+        openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        if not openai_api_key:
+            messages.error(request, "OpenAI API key is not configured.")
+            return render(request, 'main/employee_compatibility.html', context)
+        
+        # Set up OpenAI client
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        # Validate files - using the multi-file upload method
+        resumes = request.FILES.getlist('resumes')
+        job_description_file = request.FILES.get('job_description')
+        
+        # Check if files are uploaded
+        if not resumes:
+            messages.error(request, "Please upload at least one resume.")
+            return render(request, 'main/employee_compatibility.html', context)
+            
+        if not job_description_file:
+            messages.error(request, "Please upload a job description.")
+            return render(request, 'main/employee_compatibility.html', context)
+        
+        # Log file information
+        logger.info(f"Received {len(resumes)} resume(s) through multi-file upload:")
+        for i, resume in enumerate(resumes):
+            logger.info(f"  Resume {i+1}: {resume.name} ({resume.size} bytes)")
+        logger.info(f"Job description: {job_description_file.name} ({job_description_file.size} bytes)")
+        
+        # Validate file sizes (5MB limit)
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+        oversized_files = []
+        
+        for resume in resumes:
+            if resume.size > MAX_FILE_SIZE:
+                oversized_files.append(resume.name)
+                
+        if job_description_file.size > MAX_FILE_SIZE:
+            oversized_files.append(job_description_file.name)
+            
+        if oversized_files:
+            message = f"The following files exceed the 5MB limit: {', '.join(oversized_files)}"
+            messages.error(request, message)
+            return render(request, 'main/employee_compatibility.html', context)
+        
+        # Extract text from files
+        job_description_text = extract_text_from_file(job_description_file)
+        resume_texts = []
+        resume_names = []
+        
+        for resume in resumes:
+            text = extract_text_from_file(resume)
+            resume_texts.append(text)
+            resume_names.append(resume.name)
+            
+        # Generate compatibility report using OpenAI
+        try:
+            compatibility_reports = []
+            for i, (resume_text, resume_name) in enumerate(zip(resume_texts, resume_names), 1):
+                # Skip empty resumes
+                if not resume_text.strip():
+                    compatibility_reports.append(f"<div class='alert alert-warning report-section mb-5'><h3 class='mt-4 mb-3'>Analysis for Resume {i}: {resume_name}</h3><p>No extractable text found in this file.</p></div>")
+                    continue
+                
+                # Add resume name to the report - use semantic HTML5 for better PDF rendering
+                compatibility_reports.append(f"<div class='report-section mb-5'><h3 class='mt-4 mb-3'>Analysis for Resume {i}: {resume_name}</h3>")
+                
+                # Updated prompt to use bullet points for specified sections
+                prompt = f"""Perform a detailed compatibility analysis between the following job description and resume:
+
+Job Description:
+{job_description_text}
+
+Resume {i} ({resume_name}):
+{resume_text}
+
+Provide a comprehensive analysis with the following details:
+1. Overall Compatibility Score (0-100%)
+2. Skills Match Analysis - List skills match points as bullet points (at least 3-4 bullets)
+3. Experience Relevance - List experience relevance as bullet points (at least 3-4 bullets)
+4. Key Strengths - List at least 3 key strengths
+5. Potential Gaps - List any potential gaps
+6. Recommendation - List recommendations as bullet points (at least 3-4 bullets)
+
+Format the response using this exact HTML structure:
+<table class="table table-bordered table-striped">
+  <tbody>
+    <tr>
+      <th width="25%">Overall Compatibility Score</th>
+      <td><strong>XX%</strong></td>
+    </tr>
+    <tr>
+      <th>Skills Match Analysis</th>
+      <td>
+        <ul>
+          <li>[Skills match point 1]</li>
+          <li>[Skills match point 2]</li>
+          <li>[Skills match point 3]</li>
+          <li>[Skills match point 4 if applicable]</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <th>Experience Relevance</th>
+      <td>
+        <ul>
+          <li>[Experience relevance point 1]</li>
+          <li>[Experience relevance point 2]</li>
+          <li>[Experience relevance point 3]</li>
+          <li>[Experience relevance point 4 if applicable]</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <th>Key Strengths</th>
+      <td>
+        <ul>
+          <li>[Strength 1]</li>
+          <li>[Strength 2]</li>
+          <li>[Strength 3]</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <th>Potential Gaps</th>
+      <td>
+        <ul>
+          <li>[Gap 1]</li>
+          <li>[Gap 2]</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <th>Recommendation</th>
+      <td>
+        <ul>
+          <li>[Recommendation point 1]</li>
+          <li>[Recommendation point 2]</li>
+          <li>[Recommendation point 3]</li>
+          <li>[Recommendation point 4 if applicable]</li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+Do not modify this table structure. Keep all <th> and <td> elements exactly as shown."""
+                
+                try:
+                    # Updated API call for newer OpenAI client
+                    response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are a professional HR analyst doing a resume-job description compatibility check. Format your response using the exact HTML structure provided by the user. Do not deviate from the requested format."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        max_tokens=1500
+                    )
+                    
+                    # Add the response to our reports collection
+                    compatibility_reports.append(response.choices[0].message.content)
+                    # Close the section
+                    compatibility_reports.append("</div>")
+                
+                except APIError as api_error:
+                    logger.error(f"OpenAI API Error for Resume {i} ({resume_name}): {str(api_error)}")
+                    compatibility_reports.append(f"<div class='alert alert-danger'><p>API Error for Resume {i} ({resume_name}): {str(api_error)}</p></div>")
+                
+                except RateLimitError as rate_error:
+                    logger.error(f"Rate limit exceeded for Resume {i} ({resume_name}): {str(rate_error)}")
+                    compatibility_reports.append(f"<div class='alert alert-warning'><p>Rate limit exceeded. Please try again in a moment for Resume {i} ({resume_name}).</p></div>")
+                
+                except AuthenticationError as auth_error:
+                    logger.error(f"Authentication error: {str(auth_error)}")
+                    compatibility_reports.append(f"<div class='alert alert-danger'><p>Authentication error. Please check your API key configuration.</p></div>")
+                
+                except Exception as e:
+                    logger.error(f"Error for Resume {i} ({resume_name}): {str(e)}")
+                    compatibility_reports.append(f"<div class='alert alert-danger'><p>Error generating report for Resume {i} ({resume_name}): {str(e)}</p></div>")
+            
+            # Combine reports
+            context['compatibility_report'] = "".join(compatibility_reports)
+            
+            # Make sure Django doesn't escape the HTML
+            from django.utils.safestring import mark_safe
+            context['compatibility_report'] = mark_safe(context['compatibility_report'])
+            
+            context['report_count'] = len(resumes)
+        
+        except Exception as e:
+            logger.error(f"Error generating compatibility report: {str(e)}")
+            messages.error(request, f"Error generating compatibility report: {str(e)}")
+    
+    return render(request, 'main/employee_compatibility.html', context)
+
+    
+# @login_required
+# def download_compatibility_report(request):
+#     # Retrieve reports from session
+#     reports = request.session.get('compatibility_reports', [])
+    
+#     if not reports:
+#         return HttpResponse("No compatibility reports available.", status=404)
+    
+#     # Generate PDF
+#     from reportlab.lib.pagesizes import letter
+#     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+#     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+#     from reportlab.lib.enums import TA_JUSTIFY
+#     from reportlab.lib.units import inch
+    
+#     # Create a temporary file for the PDF
+#     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+#         doc = SimpleDocTemplate(temp_pdf.name, pagesize=letter,
+#                                 rightMargin=72, leftMargin=72,
+#                                 topMargin=72, bottomMargin=18)
+#         styles = getSampleStyleSheet()
+        
+#         # Custom style for better readability
+#         body_style = ParagraphStyle(
+#             name='Justify',
+#             parent=styles['Normal'],
+#             alignment=TA_JUSTIFY,
+#             fontSize=10,
+#             leading=12,
+#             spaceBefore=6,
+#             spaceAfter=6
+#         )
+        
+#         # Prepare content
+#         story = []
+#         story.append(Paragraph("Employee Compatibility Report", styles['Title']))
+#         story.append(Spacer(1, 12))
+        
+#         for i, report in enumerate(reports, 1):
+#             story.append(Paragraph(f"Compatibility Report for Candidate {i}", styles['Heading2']))
+#             story.append(Spacer(1, 6))
+            
+#             # For HTML reports, strip HTML tags
+#             import re
+#             clean_report = re.sub('<[^<]+?>', '', report)
+            
+#             # Split report into paragraphs
+#             paragraphs = clean_report.split('\n\n')
+#             for para in paragraphs:
+#                 story.append(Paragraph(para.strip(), body_style))
+            
+#             story.append(Spacer(1, 12))
+        
+#         # Build PDF
+#         doc.build(story)
+    
+#     # Serve the PDF
+#     with open(temp_pdf.name, 'rb') as pdf:
+#         response = HttpResponse(pdf.read(), content_type='application/pdf')
+#         response['Content-Disposition'] = 'attachment; filename="compatibility_report.pdf"'
+    
+#     # Clean up temporary file
+#     os.unlink(temp_pdf.name)
+    
+#     return response

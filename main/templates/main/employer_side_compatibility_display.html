@@ -6,23 +6,86 @@
     <title>Employer Compatibility Report</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        .container { margin-top: 20px; }
-        .table th, .table td { text-align: center; vertical-align: middle; }
-        .recommendations { list-style-type: decimal; margin-left: 20px; }
-        .section-title { font-weight: bold; color: #1a1e24; }
+        body { 
+            background-color: #f4f6f7;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container { 
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 900px;
+            border-radius: 5px;
+        }
+        .table-responsive {
+            margin-bottom: 30px;
+        }
+        .section-title { 
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .table th { 
+            background-color: #2980b9;
+            color: white;
+        }
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .recommendations {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px 15px 15px 30px;
+        }
+        #download-pdf-btn, #view-certificates-btn {
+            margin-top: 20px;
+            margin-right: 10px;
+            background-color: #3498db;
+            border: none;
+        }
+        #download-pdf-btn:hover, #view-certificates-btn:hover {
+            background-color: #2980b9;
+        }
+        .certificate-image {
+            max-width: 100%;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        @media print {
+            body { 
+                width: 210mm; 
+                height: 297mm; 
+                margin: 0 auto; 
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <!-- Title -->
+<div class="container" id="report-content">
     <h1 class="text-center section-title">Compatibility Report</h1>
-    <p class="text-muted text-center">
+    <p class="text-center">
         Below is the compatibility report for <strong>{{ employee_full_name|default:"Employee" }}</strong> 
         with job requirements for <strong>{{ company_name|default:"Company" }}</strong>.
+        <br>
+        Contact Info: 
+        <strong><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></strong> | 
+        <strong><a href="tel:{{ contact_number }}">{{ contact_number }}</a></strong>
     </p>
 
     <!-- Compatibility Matrix -->
-    <h3 class="section-title mt-4">Compatibility Matrix</h3>
+    <h3 class="section-title mt-4"><strong>Compatibility Matrix</strong></h3>
     <div class="table-responsive my-4">
         {% if compatibility_matrix %}
         <table class="table table-bordered table-striped align-middle">
@@ -58,7 +121,7 @@
     </div>
 
     <!-- Overall Compatibility -->
-    <h3 class="section-title mt-4">Overall Compatibility</h3>
+    <h3 class="section-title mt-4"><strong>Overall Compatibility</strong></h3>
     <ul class="list-group my-3">
         <li class="list-group-item"><b>Education Compatibility:</b> {{ overall_compatibility.education_compatibility|default:0 }}%</li>
         <li class="list-group-item"><b>Skills Compatibility:</b> {{ overall_compatibility.skills_compatibility|default:0 }}%</li>
@@ -67,7 +130,7 @@
     </ul>
 
     <!-- Recommendations -->
-    <h3 class="section-title mt-4">Recommendations</h3>
+    <h3 class="section-title mt-4"><strong>Recommendations</strong></h3>
     <ol class="recommendations">
         {% if recommendations %}
             {% for recommendation in recommendations %}
@@ -78,5 +141,122 @@
         {% endif %}
     </ol>
 </div>
+
+<!-- Buttons Container -->
+<div class="container text-center">
+    <button id="download-pdf-btn" class="btn btn-primary">Download as PDF</button>
+    <button id="view-certificates-btn" class="btn btn-primary">View Certificates</button>
+</div>
+
+<!-- Certificates Modal -->
+<div class="modal fade" id="certificatesModal" tabindex="-1" aria-labelledby="certificatesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="certificatesModalLabel">Employee Certificates</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if user_profile.user.certifications.all %}
+                    {% for certificate in user_profile.user.certifications.all %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ certificate.certificate_name }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">
+                                Issued by {{ certificate.issuing_organization|default:"Unknown" }} on {{ certificate.issued_date|date:"F j, Y" }}
+                            </h6>
+                            {% if certificate.description %}
+                            <p class="card-text">{{ certificate.description }}</p>
+                            {% endif %}
+                            {% if certificate.certificate_file %}
+                            <a href="{{ certificate.certificate_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                View Certificate
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center text-muted">No certificates available.</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('download-pdf-btn').addEventListener('click', function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'px',
+        format: 'a4',
+        compress: true
+    });
+
+    const element = document.getElementById('report-content');
+
+    const employeeName = "{{ employee_full_name|default:'Employee' }}";
+    const companyName = "{{ company_name|default:'Company' }}";
+    const filename = `Compatibility_Report_${employeeName}_${companyName}.pdf`;
+
+    // Function to add content to PDF
+    function addContent(canvas) {
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = doc.internal.pageSize.getHeight();
+
+        const widthRatio = pdfWidth / canvas.width;
+        const heightRatio = pdfHeight / canvas.height;
+        const scale = Math.min(widthRatio, heightRatio);
+
+        const scaledWidth = canvas.width * scale;
+        const scaledHeight = canvas.height * scale;
+
+        const xPadding = (pdfWidth - scaledWidth) / 2;
+        const yPadding = (pdfHeight - scaledHeight) / 2;
+
+        doc.addImage(
+            imgData, 
+            'PNG', 
+            xPadding, 
+            yPadding, 
+            scaledWidth, 
+            scaledHeight
+        );
+        doc.save(filename);
+    }
+
+    // Capture full page with higher resolution and better scaling
+    html2canvas(element, {
+        allowTaint: true,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        scale: 2, // Increased scale for better quality
+        logging: false,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
+    }).then(addContent).catch(error => {
+        console.error('Error generating PDF:', error);
+        alert('Failed to generate PDF. Please try again.');
+    });
+});
+
+// Initialize certificates modal
+document.getElementById('view-certificates-btn').addEventListener('click', function() {
+    var certificatesModal = new bootstrap.Modal(document.getElementById('certificatesModal'));
+    certificatesModal.show();
+});
+</script>
 </body>
 </html>

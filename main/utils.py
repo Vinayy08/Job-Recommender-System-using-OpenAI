@@ -20,7 +20,9 @@ logging.getLogger('matplotlib').setLevel(logging.ERROR)
 
 EXCLUDED_USERS = ["vinaybharadwaj", "admin"]
 
-BASE_RESUME_PATH = os.path.join("C:\\Users\\Vinay Bharadwaj\\Desktop\\Job-Recommender-System\\job_recommender\\media\\resumes")
+
+# Use Django's MEDIA_ROOT which is already defined in your settings.py
+BASE_RESUME_PATH = os.path.join(settings.MEDIA_ROOT, "resumes")
 DEFAULT_RESUME_PATH = os.path.join(BASE_RESUME_PATH, 'default_resume.pdf')
 os.makedirs(BASE_RESUME_PATH, exist_ok=True)
 

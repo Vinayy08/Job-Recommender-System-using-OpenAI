@@ -30,9 +30,11 @@
         {% endif %}
         <a href="{% url 'view_compatibility_scores' %}" class="btn btn-outline-dark fw-bold">View Compatibility Scores</a>
         <a href="{% url 'view_recommendations' %}" class="btn btn-outline-primary fw-bold">View Top 10 Job Recommendations</a>
+        <a href="{% url 'manage_certifications' %}" class="btn btn-outline-secondary fw-bold">Manage Certifications</a>
         <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-outline-dark fw-bold">AI Compatibility Scores</a>
     </div>
 
+    {% comment %}
     <div class="mt-5 text-center">
         <h2 style="color: #2b3847;">Your Compatibility Scores</h2>
         {% if clustered_chart_path %}
@@ -42,6 +44,7 @@
         <p class="text-danger mt-4">No compatibility data is available for you at this time.</p>
         {% endif %}
     </div>
+    {% endcomment %}
     {% else %}
     <div class="alert alert-warning" role="alert">
         <strong>Profile Incomplete:</strong> Please complete your profile to access all features.

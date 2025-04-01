@@ -5,8 +5,8 @@
 {% block content %}
 <div class="container mt-5">
     <div class="text-center">
-        <h1 class="mb-4" style="font-weight: 600; color: #4b6584;">View Applications</h1>
-        <p style="font-size: 1.1rem; color: #778ca3;">Manage and review job applications submitted by employees.</p>
+        <h1 class="mb-4" style="font-weight: 600; color: #02080f;">View Applications</h1>
+        <p style="font-size: 1.1rem; color: #10171f;">Manage and review job applications submitted by employees.</p>
     </div>
 
     {% if applications %}
@@ -18,6 +18,7 @@
                 <th scope="col">Email</th>
                 <th scope="col">Skills</th>
                 <th scope="col">Resume</th>
+                <th scope="col">Certificates</th>
                 <th scope="col">Company Name</th>
                 <th scope="col">Applied At</th>
                 <th scope="col">Actions</th>
@@ -32,19 +33,61 @@
                 <td>{{ application.user.userprofile.skills }}</td>
                 <td>
                     {% if application.resume %}
-                        <a href="{{ application.resume.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <a href="{{ application.resume.url }}" class="btn btn-sm btn-outline-primary fw-bold" target="_blank">
                             View Resume
                         </a>
                     {% else %}
                         <span class="text-muted">No Resume Uploaded</span>
                     {% endif %}
                 </td>
+                <td>
+                    {% with certificates=application.user.certifications.all %}
+                        {% if certificates %}
+                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" data-bs-toggle="modal" data-bs-target="#certModal{{ application.id }}">
+                                View Certificates
+                            </button>
+                
+                            <!-- Modal -->
+                            <div class="modal fade" id="certModal{{ application.id }}" tabindex="-1" aria-labelledby="certModalLabel{{ application.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="certModalLabel{{ application.id }}">Certificates for {{ application.user.userprofile.full_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            {% for certificate in certificates %}
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title">{{ certificate.certificate_name }}</h5>
+                                                        <h6 class="card-subtitle text-muted">
+                                                            Issued by {{ certificate.issuing_organization|default:"N/A" }} on {{ certificate.issued_date|date:"d M Y" }}
+                                                        </h6>
+                                                        {% if certificate.description %}
+                                                        <p class="mt-2">{{ certificate.description }}</p>
+                                                        {% endif %}
+                                                        <a href="{{ certificate.certificate_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">View Certificate</a>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <span class="text-muted">None</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>                
                 <td>{{ application.job.company_name }}</td>
                 <td>{{ application.applied_on|date:"d M Y, H:i" }}</td>
                 <td>
                     <form action="{% url 'delete_application_employer' application.id %}" method="post" style="display:inline;">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete Application</button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger fw-bold">Delete Application</button>
                     </form>                    
                 </td>
             </tr>

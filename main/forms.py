@@ -151,3 +151,39 @@ class LoginForm(forms.Form):
                 raise forms.ValidationError("Invalid email or password.")
         return self.cleaned_data
 
+from .models import EmployeeCertification
+
+class EmployeeCertificationForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeCertification
+        fields = [
+            'certificate_name', 
+            'issued_date', 
+            'certificate_file', 
+            'issuing_organization', 
+            'description'
+        ]
+        
+        widgets = {
+            'certificate_name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Certification Name'
+            }),
+            'issued_date': forms.DateInput(attrs={
+                'class': 'form-control', 
+                'type': 'date'
+            }),
+            'issuing_organization': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Optional: Issuing Organization'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Optional: Certification Description',
+                'rows': 3
+            }),
+            'certificate_file': forms.FileInput(attrs={
+                'class': 'form-control', 
+                'accept': '.pdf,.jpg,.jpeg,.png'
+            })
+        }

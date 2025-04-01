@@ -4,7 +4,7 @@
 {% block title %}Compatibility Report{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-5" id="report-content">
     <h1 class="text-center mb-4">Detailed Compatibility Report</h1>
     <h3 class="text-center mb-5 text-secondary">{{ company_name }} and {{ employee_name }}</h3>
 
@@ -45,8 +45,74 @@
     </div>
 
     <div class="text-center mt-4">
-        <a href="?download=1" class="btn btn-success">Download as PDF</a>
+        <button id="download-pdf-btn" class="btn btn-success">Download as PDF</button>
         <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-primary">Back to Compatibility Scores</a>
     </div>
 </div>
+
+<!-- PDF Download Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+document.getElementById('download-pdf-btn').addEventListener('click', function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'px',
+        format: 'a4',
+        compress: true
+    });
+
+    const element = document.getElementById('report-content');
+
+    const employeeName = "{{ employee_name|default:'Employee' }}";
+    const companyName = "{{ company_name|default:'Company' }}";
+    const filename = `Detailed_Compatibility_Report_${employeeName}_${companyName}.pdf`;
+
+    // Function to add content to PDF
+    function addContent(canvas) {
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = doc.internal.pageSize.getHeight();
+
+        const widthRatio = pdfWidth / canvas.width;
+        const heightRatio = pdfHeight / canvas.height;
+        const scale = Math.min(widthRatio, heightRatio);
+
+        const scaledWidth = canvas.width * scale;
+        const scaledHeight = canvas.height * scale;
+
+        const xPadding = (pdfWidth - scaledWidth) / 2;
+        const yPadding = (pdfHeight - scaledHeight) / 2;
+
+        doc.addImage(
+            imgData, 
+            'PNG', 
+            xPadding, 
+            yPadding, 
+            scaledWidth, 
+            scaledHeight
+        );
+        doc.save(filename);
+    }
+
+    // Capture full page with higher resolution and better scaling
+    html2canvas(element, {
+        allowTaint: true,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        scale: 2, // Increased scale for better quality
+        logging: false,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
+    }).then(addContent).catch(error => {
+        console.error('Error generating PDF:', error);
+        alert('Failed to generate PDF. Please try again.');
+    });
+});
+</script>
 {% endblock %}

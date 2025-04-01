@@ -50,6 +50,18 @@ urlpatterns = [
     # openai - employee side
     path('employee-ai-compatibility-scores/', views.employee_side_openaiCS, name='employee_side_openaiCS'),
     path('employee-ai-compatibility-report/<str:job>/<str:employee>/', views.employee_side_openaiCR, name='employee_side_openaiCR'),
+
+    #Certification
+    path('employee/certifications/', views.manage_certifications, name='manage_certifications'),
+    path('employee/certifications/delete/<int:certification_id>/', views.delete_certification, name='delete_certification'),
+
+    #View Employee Profiles 
+    path('view-employee-profiles/', views.view_employee_profiles, name='view_employee_profiles'),
+    path('get_certificate_details/<int:certificate_id>/', views.get_certificate_details, name='get_certificate_details'),
+
+    #Employee Compatibility Report using OpenAI
+    path('employee-compatibility/', views.employee_compatibility, name='employee_compatibility'),
+    # path('download-compatibility-report/', views.download_compatibility_report, name='download_compatibility_report'),
  
 ]   
 

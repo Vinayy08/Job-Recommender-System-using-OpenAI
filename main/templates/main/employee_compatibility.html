@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+{% block title %}Employee Compatibility Check{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-primary min-vh-100 py-5">
+    <div class="container">
+        <!-- Messages Container -->
+        {% include 'includes/messages.html' %}
+
+        <div class="card card-backdrop shadow-lg border-0 rounded-4 mb-4">
+            <div class="card-body p-5">
+                <div class="text-center mb-5">
+                    <h1 class="display-5 fw-bold text-dark mb-3">Employee Compatibility Check</h1>
+                    <p class="lead text-muted">Upload resumes and job descriptions to generate compatibility reports</p>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" id="compatibilityForm">
+                    {% csrf_token %}
+                    
+                    <!-- Resume Upload Section (Enhanced for both methods of file selection) -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3 class="h4 mb-0">Resume Upload</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="resumeUpload" class="form-label">Upload Resumes (PDF, DOCX, JPG, PNG)</label>
+                                <div class="input-group mb-3">
+                                    <input 
+                                        type="file" 
+                                        class="form-control" 
+                                        id="resumeUpload" 
+                                        name="resumes" 
+                                        accept=".pdf,.docx,.jpg,.jpeg,.png"
+                                        multiple
+                                        style="display: none;"
+                                    >
+                                    <input 
+                                        type="button" 
+                                        class="btn btn-primary" 
+                                        id="resumeUploadBtn" 
+                                        value="Select Files"
+                                    >
+                                    <input 
+                                        type="button" 
+                                        class="btn btn-outline-secondary" 
+                                        id="addMoreFilesBtn" 
+                                        value="Add More Files"
+                                    >
+                                </div>
+                                <div class="form-text">
+                                    <ul class="mb-0">
+                                        <li>Use "Select Files" to pick multiple files at once (hold Ctrl/Cmd while selecting)</li>
+                                        <li>Use "Add More Files" to add files from different locations</li>
+                                        <li>Maximum file size: 5MB per file</li>
+                                        <li>Supported formats: PDF, DOCX, JPG, PNG</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- File preview area -->
+                            <div id="resumePreview" class="mt-3">
+                                <div class="card bg-light">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">Selected Resumes</h5>
+                                        <span id="fileCounter" class="badge bg-primary">0 Files</span>
+                                    </div>
+                                    <ul id="resumeList" class="list-group list-group-flush">
+                                        <!-- Dynamically populated list of uploaded resumes -->
+                                        <li class="list-group-item text-center text-muted" id="emptyMessage">
+                                            No resumes selected yet
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Job Description Upload Section -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3 class="h4 mb-0">Job Description Upload</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="jdUpload" class="form-label">Upload Job Description (PDF, DOCX, JPG, PNG)</label>
+                                <input 
+                                    type="file" 
+                                    class="form-control" 
+                                    id="jdUpload" 
+                                    name="job_description" 
+                                    accept=".pdf,.docx,.jpg,.jpeg,.png"
+                                >
+                                <div class="form-text">Maximum file size: 5MB</div>
+                            </div>
+                            <div id="jdPreview" class="mt-3">
+                                <!-- Dynamically populated JD file preview -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                            <i class="bi bi-check-circle me-2"></i>Check Compatibility
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Compatibility Report Section -->
+        {% if compatibility_report %}
+        <div class="card card-backdrop shadow-lg border-0 rounded-4">
+            <div class="card-header bg-white text-dark fw-bold rounded-top-4 p-4">
+                <h2 class="h4 mb-0 text-center">Compatibility Report</h2>
+            </div>
+            <div class="card-body" id="report-content">
+                <!-- Dynamically populated compatibility report -->
+                {{ compatibility_report | safe }}
+            </div>
+            <!-- Download Report Button -->
+            <div class="card-footer bg-white text-center p-4">
+                <button id="download-pdf-btn" class="btn btn-success btn-lg">
+                    <i class="bi bi-download me-2"></i>Download Report
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- PDF Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resumeUpload = document.getElementById('resumeUpload');
+    const resumeUploadBtn = document.getElementById('resumeUploadBtn');
+    const addMoreFilesBtn = document.getElementById('addMoreFilesBtn');
+    const jdUpload = document.getElementById('jdUpload');
+    const resumeList = document.getElementById('resumeList');
+    const jdPreview = document.getElementById('jdPreview');
+    const compatibilityForm = document.getElementById('compatibilityForm');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    const fileCounter = document.getElementById('fileCounter');
+    const emptyMessage = document.getElementById('emptyMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Store selected resume files
+    let selectedResumeFiles = new DataTransfer();
+    
+    // Resume upload button click handler
+    if (resumeUploadBtn) {
+        resumeUploadBtn.addEventListener('click', function() {
+            // Reset the file list when clicking "Select Files"
+            selectedResumeFiles = new DataTransfer();
+            resumeUpload.click();
+        });
+    }
+    
+    // Add more files button click handler
+    if (addMoreFilesBtn) {
+        addMoreFilesBtn.addEventListener('click', function() {
+            resumeUpload.click();
+        });
+    }
+    
+    // Resume upload change handler
+    if (resumeUpload) {
+        resumeUpload.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                // Process new files
+                const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+                let oversizedFiles = [];
+                
+                // Add new files to our DataTransfer object
+                Array.from(this.files).forEach(file => {
+                    if (file.size <= MAX_FILE_SIZE) {
+                        selectedResumeFiles.items.add(file);
+                    } else {
+                        oversizedFiles.push(file.name);
+                    }
+                });
+                
+                // Update the input's files property with our accumulated files
+                resumeUpload.files = selectedResumeFiles.files;
+                
+                // Update the UI
+                updateResumeList();
+                
+                // Alert for oversized files
+                if (oversizedFiles.length > 0) {
+                    alert(`The following files exceed the 5MB limit and will be rejected:\n${oversizedFiles.join('\n')}`);
+                }
+            }
+        });
+    }
+    
+    // Update the resume list UI
+    function updateResumeList() {
+        resumeList.innerHTML = ''; // Clear previous list
+        
+        if (resumeUpload.files.length > 0) {
+            // Hide empty message
+            emptyMessage.style.display = 'none';
+            
+            // Update file counter
+            fileCounter.textContent = `${resumeUpload.files.length} File${resumeUpload.files.length !== 1 ? 's' : ''}`;
+            
+            // Add each file to the list
+            Array.from(resumeUpload.files).forEach((file, index) => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.innerHTML = `<i class="bi bi-file-earmark me-2"></i>${file.name}`;
+                
+                const controlsWrapper = document.createElement('div');
+                
+                const fileSize = document.createElement('span');
+                fileSize.classList.add('badge', 'bg-secondary', 'me-2');
+                fileSize.textContent = formatFileSize(file.size);
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.classList.add('btn', 'btn-sm', 'btn-outline-danger');
+                removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                removeBtn.title = 'Remove file';
+                removeBtn.addEventListener('click', function() {
+                    removeFile(index);
+                });
+                
+                controlsWrapper.appendChild(fileSize);
+                controlsWrapper.appendChild(removeBtn);
+                
+                listItem.appendChild(fileInfo);
+                listItem.appendChild(controlsWrapper);
+                resumeList.appendChild(listItem);
+            });
+        } else {
+            // Show empty message
+            emptyMessage.style.display = 'block';
+            resumeList.appendChild(emptyMessage);
+            fileCounter.textContent = '0 Files';
+        }
+        
+        // Update form validation
+        validateForm();
+    }
+    
+    // Remove a file from the selected files
+    function removeFile(index) {
+        const dt = new DataTransfer();
+        
+        Array.from(resumeUpload.files)
+            .filter((file, i) => i !== index)
+            .forEach(file => dt.items.add(file));
+            
+        selectedResumeFiles = dt;
+        resumeUpload.files = dt.files;
+        updateResumeList();
+    }
+    
+    // Job Description upload preview
+    if (jdUpload) {
+        jdUpload.addEventListener('change', function(e) {
+            jdPreview.innerHTML = ''; // Clear previous preview
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                
+                // Check file size
+                const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+                if (file.size > MAX_FILE_SIZE) {
+                    alert(`The file "${file.name}" exceeds the 5MB limit.`);
+                    this.value = '';
+                    return;
+                }
+                
+                const fileItem = document.createElement('div');
+                fileItem.classList.add('alert', 'alert-info', 'd-flex', 'justify-content-between', 'align-items-center');
+                
+                const fileName = document.createElement('span');
+                fileName.innerHTML = `<i class="bi bi-file-earmark-text me-2"></i>${file.name}`;
+                
+                const fileSize = document.createElement('span');
+                fileSize.classList.add('badge', 'bg-info');
+                fileSize.textContent = formatFileSize(file.size);
+                
+                fileItem.appendChild(fileName);
+                fileItem.appendChild(fileSize);
+                jdPreview.appendChild(fileItem);
+                
+                // Update form validation
+                validateForm();
+            }
+        });
+    }
+    
+    // Validate form
+    function validateForm() {
+        const hasResumes = resumeUpload.files.length > 0;
+        const hasJobDescription = jdUpload.files.length > 0;
+        
+        submitBtn.disabled = !(hasResumes && hasJobDescription);
+    }
+
+    // Form submission handler
+    if (compatibilityForm) {
+        compatibilityForm.addEventListener('submit', function(e) {
+            // No need to prevent default as we're using the built-in form submit
+            
+            // Show loading indicator
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            submitBtn.disabled = true;
+        });
+    }
+
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+        if (bytes < 1024) {
+            return bytes + ' B';
+        } else if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(1) + ' KB';
+        } else {
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+    }
+    
+    // Optimized PDF Download functionality
+    if (downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', function() {
+            const { jsPDF } = window.jspdf;
+            const reportElement = document.getElementById('report-content');
+            
+            // Show loading indicator 
+            downloadPdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating PDF...';
+            downloadPdfBtn.disabled = true;
+            
+            // Get timestamp and filename
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `Compatibility_Report_${timestamp}.pdf`;
+            
+            // Create a new jsPDF instance
+            const doc = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            // Add title
+            doc.setFontSize(16);
+            doc.text('Employee Compatibility Report', 105, 15, { align: 'center' });
+            
+            // Add timestamp
+            doc.setFontSize(10);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+            
+            // Wait for any images to load
+            setTimeout(() => {
+                // Process each report section one by one
+                const reportSections = reportElement.querySelectorAll('.report-section');
+                
+                if (reportSections.length === 0) {
+                    // If no sections, capture entire report with optimized settings
+                    generatePDF(reportElement, doc);
+                } else {
+                    // Process each section one by one
+                    captureAllSections(Array.from(reportSections), doc, 0, () => {
+                        doc.save(filename);
+                        resetButton();
+                    });
+                }
+            }, 500); // Give time for any rendering to complete
+            
+            function generatePDF(element, doc) {
+                // Optimized settings for reduced file size
+                html2canvas(element, {
+                    scale: 1.5, // Reduced from 2 to lower resolution but maintain quality
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                }).then(canvas => {
+                    addCanvasToPdf(canvas, doc);
+                    doc.save(filename);
+                    resetButton();
+                }).catch(error => {
+                    console.error('Error capturing report:', error);
+                    resetButton();
+                });
+            }
+            
+            function captureAllSections(sections, doc, index, onComplete) {
+                if (index >= sections.length) {
+                    onComplete();
+                    return;
+                }
+                
+                const section = sections[index];
+                
+                if (index > 0) {
+                    doc.addPage();
+                }
+                
+                // Optimized settings for smaller file size
+                html2canvas(section, {
+                    scale: 1.5,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 0,
+                    removeContainer: true
+                }).then(canvas => {
+                    addCanvasToPdf(canvas, doc);
+                    captureAllSections(sections, doc, index + 1, onComplete);
+                }).catch(error => {
+                    console.error(`Error capturing section ${index}:`, error);
+                    captureAllSections(sections, doc, index + 1, onComplete);
+                });
+            }
+            
+            function addCanvasToPdf(canvas, doc) {
+                // Optimize image quality/size for PDF
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG instead of PNG with 80% quality
+                
+                // Calculate dimensions
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                
+                // Calculate scaling
+                const margin = 10; // margin in mm
+                const usableWidth = pdfWidth - (margin * 2);
+                const scaleFactor = usableWidth / canvas.width;
+                const scaledHeight = canvas.height * scaleFactor;
+                
+                // Add image to page
+                doc.addImage(
+                    imgData,
+                    'JPEG',
+                    margin,
+                    30, // Start after the header
+                    usableWidth,
+                    scaledHeight
+                );
+            }
+            
+            function resetButton() {
+                downloadPdfBtn.innerHTML = '<i class="bi bi-download me-2"></i>Download Report';
+                downloadPdfBtn.disabled = false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .card-backdrop {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+    }
+    
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+    }
+    
+    /* Optimize tables for PDF output */
+    .report-section table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+    
+    .report-section th, 
+    .report-section td {
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    .report-section ul {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}

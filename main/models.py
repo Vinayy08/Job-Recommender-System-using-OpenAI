@@ -4,8 +4,70 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def certification_file_path(instance, filename):
+    """
+    Generate a unique file path for certification uploads
+    """
+    # File will be uploaded to MEDIA_ROOT/certifications/user_id/filename
+    return f'certifications/{instance.user.id}/{filename}'
+
+class EmployeeCertification(models.Model):
+    """
+    Model to store employee certifications
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='certifications'
+    )
+    
+    certificate_name = models.CharField(
+        max_length=255, 
+        verbose_name='Certification Name'
+    )
+    
+    issued_date = models.DateField(
+        verbose_name='Certification Issued Date'
+    )
+    
+    certificate_file = models.FileField(
+        upload_to=certification_file_path,
+        verbose_name='Certification Document',
+        help_text='Upload PDF, JPG, or PNG',
+        validators=[
+            # You can add file type and size validators here
+        ]
+    )
+    
+    issuing_organization = models.CharField(
+        max_length=255, 
+        verbose_name='Issuing Organization', 
+        blank=True, 
+        null=True
+    )
+    
+    description = models.TextField(
+        verbose_name='Certification Description', 
+        blank=True, 
+        null=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.certificate_name} - {self.user.username}"
+    
+    class Meta:
+        verbose_name = 'Employee Certification'
+        verbose_name_plural = 'Employee Certifications'
+        ordering = ['-issued_date']
+
 
 # Function to upload resumes dynamically
 def upload_to_resumes(instance, filename):
@@ -67,6 +129,9 @@ class UserProfile(models.Model):
     experience_years = models.IntegerField(default=0)
     experience_projects = models.TextField(blank=True, null=True)
     education = models.TextField(blank=True, null=True)
+    testimonials = models.TextField(blank=True, null=True)
+    preferred_location = models.CharField(max_length=255, blank=True, null=True)
+    expected_salary = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.full_name} ({self.role})"

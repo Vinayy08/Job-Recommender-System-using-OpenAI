@@ -8,12 +8,14 @@
     <h1 class="text-center mb-4" style="font-weight: bold; color: #141d29;">Compatibility Report</h1>
     <p class="text-muted text-center">Review the compatibility of job postings and candidate resumes below.</p>
 
-    <!-- Clustered Bar Chart -->
+    <!-- Clustered Bar Chart - Commented out as requested -->
+    {% comment %}
     {% if bar_chart_path %}
     <div class="text-center mt-4">
         <img src="{{ bar_chart_path }}" alt="Compatibility Scores (Jobs vs. Candidates)" class="img-fluid border border-secondary" style="border-radius: 10px;">
     </div>
     {% endif %}
+    {% endcomment %}
 
     <!-- Search Bar -->
     <form method="get" action="{% url 'generate_compatibility_report' %}" class="my-4">
@@ -70,7 +72,7 @@
     {% endif %}
 
     <!-- Full Table -->
-    <h4 class="text-center mt-5 mb-3" style="font-weight: bold; color: #4b6584;">All Companies</h4>
+    <h4 class="text-center mt-5 mb-3" style="font-weight: bold; color: rgb(18, 30, 44);">All Companies</h4>
     <div class="mb-3 text-center">
         <input type="number" id="fullThresholdInput" placeholder="Enter threshold (e.g., 70)" class="form-control w-25 d-inline-block" style="border-radius: 25px; padding: 10px 15px; font-size: 1rem;">
     </div>

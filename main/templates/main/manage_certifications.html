@@ -9,8 +9,9 @@
             
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                    <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert" id="alert-{{ forloop.counter }}">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -110,4 +111,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-dismiss success alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert-success');
+    alerts.forEach(function(alert) {
+        setTimeout(function() {
+            // Use Bootstrap's alert dismiss functionality
+            const closeButton = alert.querySelector('.btn-close');
+            if (closeButton) {
+                closeButton.click();
+            } else {
+                // Fallback if the close button is not found
+                alert.classList.remove('show');
+                setTimeout(function() {
+                    alert.remove();
+                }, 150); // Small delay for fade out animation
+            }
+        }, 7000); // 7 seconds
+    });
+});
+</script>
 {% endblock %}

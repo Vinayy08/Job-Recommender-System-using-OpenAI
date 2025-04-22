@@ -55,11 +55,11 @@
                                         <td class="text-center search-highlight" style="min-width: 150px;">{{ profile.full_name }}</td>
                                         <td class="text-center search-highlight">{{ profile.contact_email|default:profile.user.email }}</td>
                                         <td class="text-center" style="min-width: 150px;">{{ profile.contact_number }}</td>
-                                        <td class="text-center search-highlight" style="min-width: 250px;">{{ profile.education|default:'N/A' }}</td>
+                                        <td class="text-center search-highlight" style="min-width: 250px;">{{ profile.formatted_education|default:'N/A'|safe }}</td>
                                         <td class="text-center search-highlight" style="min-width: 200px;">{{ profile.skills|default:'N/A' }}</td>
-                                        <td class="text-center search-highlight">{{ profile.links|default:'N/A' }}</td>
+                                        <td class="text-center search-highlight">{{ profile.formatted_links|default:'N/A'|safe }}</td>
                                         <td class="text-center search-highlight">{{ profile.experience_years }}</td>
-                                        <td class="text-center search-highlight" style="min-width: 250px;">{{ profile.experience_projects|default:'N/A' }}</td>
+                                        <td class="text-center search-highlight" style="min-width: 250px;">{{ profile.formatted_experience_projects|default:'N/A'|safe }}</td>
                                         <td class="text-center search-highlight" style="min-width: 150px;">{{ profile.preferred_location|default:'N/A' }}</td>
                                         <td class="text-center">{{ profile.expected_salary|default:'N/A' }}</td>
                                         <td class="text-center">

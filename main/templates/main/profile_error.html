@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile Error{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Profile Error</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <p class="card-text">
+                        We're sorry, but we couldn't find your profile information. This could happen for several reasons:
+                    </p>
+                    
+                    <ul>
+                        <li>Your account setup may not be complete</li>
+                        <li>There might be a technical issue with your profile</li>
+                        <li>Your profile may have been recently created and is not yet fully processed</li>
+                    </ul>
+                    
+                    <p>User email: {{ email }}</p>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'contact_support' %}" class="btn btn-primary">Contact Support</a>
+                        <a href="{% url 'edit_profile' %}" class="btn btn-outline-secondary">Try Setting Up Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

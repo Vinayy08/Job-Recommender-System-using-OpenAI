@@ -2,54 +2,255 @@
 {% block title %}Employee Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="text-center">
-        <h1 class="mb-4" style="font-weight: 600; color: #000000;">Welcome, {{ employee_name }}</h1>
-        <p style="font-size: 1.1rem; color: #16222e;">Manage your profile, applications, and recommended jobs in one place.</p>
-    </div>
+<div class="bg-gradient-primary min-vh-100 py-5">
+    <div class="container">
+        <div class="card card-backdrop shadow-lg border-0 rounded-4 mb-4">
+            <div class="card-body p-5">
+                <div class="text-center mb-5">
+                    <h1 class="display-5 fw-bold text-dark mb-3">Welcome, {{ employee_name }}</h1>
+                    <p class="lead text-muted">Manage your profile, applications, and recommended jobs in one place.</p>
+                </div>
 
-    {% if incomplete_profile %}
-        {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-warning" role="alert">
-            {{ message }}
+                {% if messages %}
+                    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+                        {% for message in messages %}
+                            {% if "profile" not in message.message|lower %}
+                                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if incomplete_profile %}
+                    <!-- Persistent alert that won't auto-dismiss -->
+                    <div class="alert alert-warning mb-4" role="alert">
+                        <strong>Profile Incomplete:</strong> Please complete your profile to access all features.
+                        <a href="{% url 'update_profile' %}" class="btn btn-primary ms-3">Complete Profile</a>
+                    </div>
+                {% endif %}
+
+                {% if not incomplete_profile %}
+                    <!-- Button Group with Employer Dashboard Styling -->
+                    <style>
+                        .action-buttons-container {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 14px;
+                            justify-content: center;
+                            margin-bottom: 2rem;
+                        }
+
+                        .action-button {
+                            flex: 0 0 auto;
+                            width: calc(25% - 11px);
+                            border-radius: 8px;
+                            overflow: hidden;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                            transition: all 0.2s ease;
+                            border: none;
+                            position: relative;
+                        }
+
+                        .action-button:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                        }
+
+                        .action-button a {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            padding: 16px 18px;
+                            color: white;
+                            text-decoration: none;
+                            font-weight: 700;
+                            height: 100%;
+                            font-size: 16px;
+                            letter-spacing: 0.3px;
+                            text-align: center;
+                        }
+
+                        .action-button i {
+                            margin-right: 8px;
+                            font-size: 20px;
+                        }
+
+                        .action-button i:empty {
+                            display: none;
+                        }
+
+                        /* Professional color palette for employee dashboard */
+                        .bg-jobs {
+                            background: #4F46E5;
+                        }
+
+                        .bg-profile {
+                            background: #059669;
+                        }
+
+                        .bg-applications {
+                            background: #7C3AED;
+                        }
+
+                        .bg-resume {
+                            background: #0D9488;
+                        }
+
+                        .bg-compatibility {
+                            background: #2563EB;
+                        }
+
+                        .bg-recommendations {
+                            background: #0891B2;
+                        }
+
+                        .bg-certifications {
+                            background: #EA580C;
+                        }
+
+                        .bg-ai {
+                            background: #9333EA;
+                        }
+
+                        @media (max-width: 1200px) {
+                            .action-button {
+                                width: calc(33.33% - 10px);
+                            }
+                            
+                            .action-button a {
+                                padding: 14px 16px;
+                            }
+                        }
+
+                        @media (max-width: 992px) {
+                            .action-button {
+                                width: calc(50% - 7px);
+                            }
+                        }
+
+                        @media (max-width: 576px) {
+                            .action-button {
+                                width: 100%;
+                            }
+                            
+                            .action-button a {
+                                padding: 14px 20px;
+                            }
+                        }
+                    </style>
+
+                    <div class="action-buttons-container">
+                        <div class="action-button">
+                            <a href="{% url 'view_jobs' %}" class="bg-jobs">
+                                <i class="bi bi-briefcase"></i>
+                                View Jobs
+                            </a>
+                        </div>
+                        
+                        <div class="action-button">
+                            <a href="{% url 'update_profile' %}" class="bg-profile">
+                                <i class="bi bi-person-gear"></i>
+                                Update Profile
+                            </a>
+                        </div>
+                        
+                        <div class="action-button">
+                            <a href="{% url 'view_employee_applications' %}" class="bg-applications">
+                                <i class="bi bi-clipboard-check"></i>
+                                View My Applications
+                            </a>
+                        </div>
+                        
+                        <div class="action-button">
+                            {% if resume_path %}
+                            <a href="{{ resume_path }}" target="_blank" class="bg-resume">
+                                <i class="bi bi-file-earmark-text"></i>
+                                View Resume
+                            </a>
+                            {% else %}
+                            <a href="{% url 'update_profile' %}" class="bg-resume">
+                                <i class="bi bi-file-earmark-plus"></i>
+                                No Resume Uploaded
+                            </a>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="action-button">
+                            <a href="{% url 'view_compatibility_scores' %}" class="bg-compatibility">
+                                <i class="bi bi-bar-chart"></i>
+                                View Compatibility Scores
+                            </a>
+                        </div>
+                        
+                        <div class="action-button">
+                            <a href="{% url 'view_recommendations' %}" class="bg-recommendations">
+                                <i class="bi bi-stars"></i>
+                                View Top 10 Job Recommendations
+                            </a>
+                        </div>
+                        
+                        <div class="action-button">
+                            <a href="{% url 'manage_certifications' %}" class="bg-certifications">
+                                <i class="bi bi-award"></i>
+                                Manage Certifications
+                            </a>
+                        </div>
+                        
+                        {% comment %}
+                        <div class="action-button">
+                            <a href="{% url 'employee_side_openaiCS' %}" class="bg-ai">
+                                <i class="bi bi-magic"></i>
+                                AI Compatibility Scores
+                            </a>
+                        </div>
+                        {% endcomment %}
+                    </div>
+
+                    {% comment %}
+                    <div class="mt-5 text-center">
+                        <h2 style="color: #2b3847;">Your Compatibility Scores</h2>
+                        {% if clustered_chart_path %}
+                        <img src="{{ clustered_chart_path }}" alt="Compatibility Clustered Bar Chart" class="img-fluid mt-4">
+                        <p class="text-muted mt-3">This clustered bar chart shows your compatibility scores with various job opportunities.</p>
+                        {% else %}
+                        <p class="text-danger mt-4">No compatibility data is available for you at this time.</p>
+                        {% endif %}
+                    </div>
+                    {% endcomment %}
+                {% endif %}
+            </div>
         </div>
-        {% endfor %}
-        {% endif %}
-    {% endif %}
-
-    {% if not incomplete_profile %}
-    <div class="d-flex justify-content-center gap-3 my-4">
-        <a href="{% url 'view_jobs' %}" class="btn btn-outline-success fw-bold">View Jobs</a>
-        <a href="{% url 'update_profile' %}" class="btn btn-outline-secondary fw-bold">Update Profile</a>
-        <a href="{% url 'view_employee_applications' %}" class="btn btn-outline-info fw-bold">View My Applications</a>
-        {% if resume_path %}
-        <a href="{{ resume_path }}" target="_blank" class="btn btn-outline-warning fw-bold">View Resume</a>
-        {% else %}
-        <button class="btn btn-outline-warning fw-bold" disabled>No Resume Uploaded</button>
-        {% endif %}
-        <a href="{% url 'view_compatibility_scores' %}" class="btn btn-outline-dark fw-bold">View Compatibility Scores</a>
-        <a href="{% url 'view_recommendations' %}" class="btn btn-outline-primary fw-bold">View Top 10 Job Recommendations</a>
-        <a href="{% url 'manage_certifications' %}" class="btn btn-outline-secondary fw-bold">Manage Certifications</a>
-        <a href="{% url 'employee_side_openaiCS' %}" class="btn btn-outline-dark fw-bold">AI Compatibility Scores</a>
     </div>
-
-    {% comment %}
-    <div class="mt-5 text-center">
-        <h2 style="color: #2b3847;">Your Compatibility Scores</h2>
-        {% if clustered_chart_path %}
-        <img src="{{ clustered_chart_path }}" alt="Compatibility Clustered Bar Chart" class="img-fluid mt-4">
-        <p class="text-muted mt-3">This clustered bar chart shows your compatibility scores with various job opportunities.</p>
-        {% else %}
-        <p class="text-danger mt-4">No compatibility data is available for you at this time.</p>
-        {% endif %}
-    </div>
-    {% endcomment %}
-    {% else %}
-    <div class="alert alert-warning" role="alert">
-        <strong>Profile Incomplete:</strong> Please complete your profile to access all features.
-        <a href="{% url 'update_profile' %}" class="btn btn-primary">Complete Profile</a>
-    </div>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .card-backdrop {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-dismiss only regular alerts after 5 seconds, NOT the profile incomplete alert
+    const regularAlerts = document.querySelectorAll('.alert.alert-dismissible');
+    regularAlerts.forEach(alert => {
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000);
+    });
+});
+</script>
 {% endblock %}

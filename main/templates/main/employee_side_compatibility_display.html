@@ -84,7 +84,7 @@
                 {% for row in compatibility_matrix %}
                 <tr>
                     <td><b>{{ row.Criteria|default:"N/A" }}</b></td>
-                    <td>{{ row.Resume_Details|default:"Not Specified" }}</td>
+                    <td>{{ row.Resume_Details|default:"Not Specified"|safe }}</td>
                     <td>{{ row.Job_Description_Requirements|default:"Not Specified" }}</td>
                     <td>
                         <span class="{% if row.Match == 'Yes' %}text-success{% else %}text-danger{% endif %}">

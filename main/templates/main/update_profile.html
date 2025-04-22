@@ -5,71 +5,85 @@
 {% block content %}
 <div class="container my-5">
     <h1 class="text-center mb-4 fw-bold">Update Your Profile</h1>
+    
+    <!-- Display messages -->
+    {% if messages %}
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <form method="post" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" id="alert-{{ forloop.counter }}">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="post" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light" id="profileUpdateForm">
                 {% csrf_token %}
 
                 <!-- Name -->
                 <div class="mb-3">
                     <label for="name" class="form-label fw-bold">Name</label>
-                    <input type="text" name="name" id="name" value="{{ user_profile.full_name }}" class="form-control" placeholder="Enter your name">
+                    <input type="text" name="name" id="name" value="{{ form_data.name|default:user_profile.full_name }}" class="form-control" placeholder="Enter your name">
                 </div>
 
                 <!-- Email -->
                 <div class="mb-3">
                     <label for="email" class="form-label fw-bold">Email</label>
-                    <input type="email" name="email" id="email" value="{{ user.email }}" class="form-control" placeholder="Enter your email">
+                    <input type="email" name="email" id="email" value="{{ form_data.email|default:user.email }}" class="form-control" placeholder="Enter your email">
                 </div>
 
                 <!-- Contact Number -->
                 <div class="mb-3">
                     <label for="contact_number" class="form-label fw-bold">Contact Number</label>
-                    <input type="text" name="contact_number" id="contact_number" value="{{ user_profile.contact_number }}" class="form-control" placeholder="Enter your contact number">
+                    <input type="text" name="contact_number" id="contact_number" value="{{ form_data.contact_number|default:user_profile.contact_number }}" class="form-control" placeholder="Enter your contact number">
                 </div>
 
                 <!-- Education -->
                 <div class="mb-3">
                     <label for="education" class="form-label fw-bold">Education</label>
-                    <textarea name="education" id="education" class="form-control" rows="3" placeholder="Enter your education details">{{ user_profile.education }}</textarea>
+                    <textarea name="education" id="education" class="form-control" rows="3" placeholder="Enter your education details">{{ form_data.education|default:user_profile.education }}</textarea>
                 </div>
 
                 <!-- Skills -->
                 <div class="mb-3">
                     <label for="skills" class="form-label fw-bold">Skills</label>
-                    <textarea name="skills" id="skills" class="form-control" rows="3" placeholder="Enter your skills">{{ user_profile.skills }}</textarea>
+                    <textarea name="skills" id="skills" class="form-control" rows="3" placeholder="Enter your skills">{{ form_data.skills|default:user_profile.skills }}</textarea>
                 </div>
 
                 <!-- Links -->
                 <div class="mb-3">
                     <label for="links" class="form-label fw-bold">Links</label>
-                    <textarea name="links" id="links" class="form-control" rows="3" placeholder="Add links (e.g., LinkedIn, GitHub, Portfolio)">{{ user_profile.links }}</textarea>
+                    <textarea name="links" id="links" class="form-control" rows="3" placeholder="Add links (e.g., LinkedIn, GitHub, Portfolio)">{{ form_data.links|default:user_profile.links }}</textarea>
                 </div>
 
                 <!-- Experience in Years -->
                 <div class="mb-3">
                     <label for="experience_years" class="form-label fw-bold">Experience in Years</label>
-                    <input type="number" name="experience_years" id="experience_years" value="{{ user_profile.experience_years }}" class="form-control" placeholder="Enter your experience in years">
+                    <input type="number" name="experience_years" id="experience_years" value="{{ form_data.experience_years|default:user_profile.experience_years }}" class="form-control" placeholder="Enter your experience in years">
                 </div>
 
                 <!-- Experience/Projects -->
                 <div class="mb-3">
                     <label for="experience_projects" class="form-label fw-bold">Experience / Projects</label>
-                    <textarea name="experience_projects" id="experience_projects" class="form-control" rows="4" placeholder="Describe your experience or projects">{{ user_profile.experience_projects }}</textarea>
+                    <textarea name="experience_projects" id="experience_projects" class="form-control" rows="4" placeholder="Describe your experience or projects">{{ form_data.experience_projects|default:user_profile.experience_projects }}</textarea>
                 </div>
 
                 <!-- Preferred Location -->
                 <div class="mb-3">
                     <label for="preferred_location" class="form-label fw-bold">Preferred Location</label>
-                    <input type="text" name="preferred_location" id="preferred_location" value="{{ user_profile.preferred_location }}" class="form-control" placeholder="Enter your preferred location">
+                    <input type="text" name="preferred_location" id="preferred_location" value="{{ form_data.preferred_location|default:user_profile.preferred_location }}" class="form-control" placeholder="Enter your preferred location">
                 </div>
 
                 <!-- Expected Salary -->
                 <div class="mb-3">
                     <label for="expected_salary" class="form-label fw-bold">Expected Salary</label>
-                    <input type="number" name="expected_salary" id="expected_salary" value="{{ user_profile.expected_salary }}" class="form-control" placeholder="Enter your expected salary">
+                    <input type="number" name="expected_salary" id="expected_salary" value="{{ form_data.expected_salary|default:user_profile.expected_salary }}" class="form-control" placeholder="Enter your expected salary">
                 </div>
-
 
                 <!-- Resume -->
                 <div class="mb-3">
@@ -86,7 +100,10 @@
                 <!-- Testimonials -->
                 <div class="mb-3">
                     <label for="testimonials" class="form-label fw-bold">Testimonials</label>
-                    <textarea name="testimonials" id="testimonials" class="form-control" rows="3" placeholder="Enter any testimonials you have received">{{ user_profile.testimonials }}</textarea>
+                    <textarea name="testimonials" id="testimonials" class="form-control" rows="3" placeholder="Enter any testimonials you have received">{{ form_data.testimonials|default:user_profile.testimonials }}</textarea>
+                    <div class="mt-2">
+                        <a href="{% url 'manage_certifications' %}" class="btn btn-primary">Add Certifications</a>
+                    </div>
                 </div>
 
                 <!-- Change Password -->
@@ -101,10 +118,50 @@
 
                 <!-- Submit Button -->
                 <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-success btn-lg">Save Changes</button>
+                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                        <i class="bi bi-check-circle me-2"></i>Save Changes
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profileUpdateForm = document.getElementById('profileUpdateForm');
+    
+    // Form submission handler
+    if (profileUpdateForm) {
+        profileUpdateForm.addEventListener('submit', function(e) {
+            // No need to prevent default as we're using the built-in form submit
+            
+            // Show loading indicator
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            submitBtn.disabled = true;
+        });
+    }
+    
+    // Auto-dismiss success alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert-success');
+    alerts.forEach(function(alert) {
+        setTimeout(function() {
+            // Use Bootstrap's alert dismiss functionality
+            const closeButton = alert.querySelector('.btn-close');
+            if (closeButton) {
+                closeButton.click();
+            } else {
+                // Fallback if the close button is not found
+                alert.classList.remove('show');
+                setTimeout(function() {
+                    alert.remove();
+                }, 150); // Small delay for fade out animation
+            }
+        }, 7000); // 7 seconds
+    });
+});
+</script>
 {% endblock %}

@@ -38,6 +38,7 @@ from .utils import (
     generate_clustered_bar_chart,
     generate_employee_clustered_chart,
     generate_recommendations,
+    format_education,format_links,format_experience_projects
 )
 from .helpers import preprocess_text, extract_text_from_file
 nlp = spacy.load("en_core_web_sm")
@@ -106,9 +107,16 @@ def home(request):
             return render(request, 'main/employer_home.html', context)
         return render(request, 'main/employee_home.html', context)
     except UserProfile.DoesNotExist:
+        # Display error on the current page instead of redirecting
         messages.error(request, "User profile not found. Please contact support.")
-        return redirect('login')
-
+        # Provide a minimal context with just the user information
+        context = {
+            'user': request.user,
+            'email': request.user.email,
+        }
+        # Render a simple error template or use a generic template
+        return render(request, 'main/profile_error.html', context)
+    
 
 @login_required
 def view_employee_profiles(request):
@@ -133,6 +141,14 @@ def view_employee_profiles(request):
             Q(testimonials__icontains=search_query) |
             Q(user__email__icontains=search_query)
         )
+
+    # Format data before rendering
+    formatted_profiles = []
+    for profile in employee_profiles:
+        profile.formatted_education = format_education(profile.education)
+        profile.formatted_links = format_links(profile.links)
+        profile.formatted_experience_projects = format_experience_projects(profile.experience_projects)
+        formatted_profiles.append(profile)
 
     # Paginate the results
     paginator = Paginator(employee_profiles, 10)  # Show 10 profiles per page
@@ -298,13 +314,15 @@ from django.utils.decorators import method_decorator
 # Employer Registration View
 @csrf_protect
 def employer_register(request):
+    registration_success = False
     if request.method == 'POST':
         form = EmployerRegistrationForm(request.POST)
         if form.is_valid():
             try:
                 user = form.save()
-                messages.success(request, "Employer registration successful. Please log in.")
-                return redirect('login')
+                registration_success = True
+                # No message needed as we're using the template variable
+                # No immediate redirect - let JavaScript handle it
             except IntegrityError:
                 messages.error(request, "A user with this email or contact number already exists.")
             except Exception as e:
@@ -313,25 +331,33 @@ def employer_register(request):
             messages.error(request, "Please correct the errors below.")
     else:
         form = EmployerRegistrationForm()
-    return render(request, 'main/employer_register.html', {'form': form})
+    return render(request, 'main/employer_register.html', {
+        'form': form,
+        'registration_success': registration_success
+    })
 
 # Employee Registration View
 @csrf_protect
 def employee_register(request):
+    registration_success = False
     if request.method == 'POST':
         form = EmployeeRegistrationForm(request.POST)
         if form.is_valid():
             try:
                 user = form.save()
-                messages.success(request, "Employee registration successful. Please log in.")
-                return redirect('login')
+                registration_success = True
+                # No message needed as we're using the template variable
+                # No immediate redirect - let JavaScript handle it
             except Exception as e:
                 messages.error(request, f"Unexpected error during registration: {e}")
         else:
             messages.error(request, "Please correct the errors below.")
     else:
         form = EmployeeRegistrationForm()
-    return render(request, 'main/employee_register.html', {'form': form})
+    return render(request, 'main/employee_register.html', {
+        'form': form,
+        'registration_success': registration_success
+    })
 
 
 @login_required
@@ -358,12 +384,33 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+# Update the update_employee_profile view to ensure extracted data is properly formatted
+
 @login_required
 @employee_required
 def update_employee_profile(request):
     user_profile = get_object_or_404(UserProfile, user=request.user)
+    form_data = None
 
+    # Format any JSON strings that might be stored in the database before rendering
+    if isinstance(user_profile.education, str) and (user_profile.education.startswith('[') and user_profile.education.endswith(']')):
+        user_profile.education = format_education(user_profile.education)
+        
+    # Handle links formatting - ensure empty links are truly empty
+    formatted_links = format_links(user_profile.links)
+    if not formatted_links:
+        user_profile.links = ""
+    else:
+        user_profile.links = formatted_links
+        
+    if isinstance(user_profile.experience_projects, str) and (user_profile.experience_projects.startswith('[') and user_profile.experience_projects.endswith(']')):
+        user_profile.experience_projects = format_experience_projects(user_profile.experience_projects)
+        
     if request.method == 'POST':
+        # Store the POST data in case we need to re-render the form with errors
+        form_data = request.POST.copy()
+        
+        # Existing POST handling code remains the same
         name = request.POST.get('name', '').strip()
         email = request.POST.get('email', '').strip()
         contact_number = request.POST.get('contact_number', '').strip()
@@ -377,6 +424,7 @@ def update_employee_profile(request):
         old_password = request.POST.get('old_password', '').strip()
         new_password = request.POST.get('new_password', '').strip()
         
+      
         # Safe conversion of expected_salary
         try:
             expected_salary = request.POST.get('expected_salary')
@@ -385,7 +433,11 @@ def update_employee_profile(request):
                 user_profile.expected_salary = expected_salary
         except ValueError:
             messages.error(request, "Invalid expected salary entered. Please enter a valid number.")
-            return redirect('update_profile')
+            # Return the form with the original data instead of redirecting
+            return render(request, 'main/update_profile.html', {
+                'user_profile': user_profile,
+                'form_data': form_data
+            })
 
         try:
             if name:
@@ -393,13 +445,21 @@ def update_employee_profile(request):
             if email and email != request.user.email:
                 if User.objects.filter(email=email).exists():
                     messages.error(request, "Email already in use.")
-                    return redirect('update_profile')
+                    # Return the form with the original data instead of redirecting
+                    return render(request, 'main/update_profile.html', {
+                        'user_profile': user_profile,
+                        'form_data': form_data
+                    })
                 request.user.email = email
 
             if contact_number and contact_number != user_profile.contact_number:
                 if UserProfile.objects.filter(contact_number=contact_number).exists():
                     messages.error(request, "Contact number already in use.")
-                    return redirect('update_profile')
+                    # Return the form with the original data instead of redirecting
+                    return render(request, 'main/update_profile.html', {
+                        'user_profile': user_profile,
+                        'form_data': form_data
+                    })
                 user_profile.contact_number = contact_number
 
             user_profile.links = links
@@ -408,17 +468,58 @@ def update_employee_profile(request):
             user_profile.experience_projects = experience_projects
             user_profile.preferred_location = preferred_location
             user_profile.testimonials = testimonials
-
+            
+            # Process resume if uploaded
             if resume:
-                resume_text = parse_resume(resume)
-                extracted_data = extract_data_from_resume(resume_text)
-                user_profile.resume = resume
-                user_profile.skills = extracted_data.get('skills', user_profile.skills)
-                user_profile.education = extracted_data.get('education', user_profile.education)
-                user_profile.experience_projects = extracted_data.get('experience_projects', user_profile.experience_projects)
-                user_profile.experience_years = extracted_data.get('experience_years', user_profile.experience_years)
-                user_profile.contact_number = extracted_data.get('contact_number', user_profile.contact_number)
-                user_profile.links = extracted_data.get('links', user_profile.links)
+                try:
+                    # Parse the resume
+                    resume_text = parse_resume(resume)
+                    # Extract data using OpenAI
+                    extracted_data = extract_data_from_resume(resume_text)
+                    
+                    # Store the resume file
+                    user_profile.resume = resume
+                    
+                    # Update fields with extracted data, but only if the extracted data is not empty
+                    if extracted_data.get('skills'):
+                        user_profile.skills = extracted_data.get('skills')
+                    if extracted_data.get('education'):
+                        user_profile.education = extracted_data.get('education')
+                    if extracted_data.get('experience_projects'):
+                        user_profile.experience_projects = extracted_data.get('experience_projects')
+                    if extracted_data.get('experience_years'):
+                        user_profile.experience_years = extracted_data.get('experience_years')
+                    if extracted_data.get('contact_number'):
+                        user_profile.contact_number = extracted_data.get('contact_number')
+                    
+                    # Specifically handle links
+                    if extracted_data.get('links') is not None:
+                        formatted_links = format_links(extracted_data.get('links'))
+                        if formatted_links:
+                            user_profile.links = formatted_links
+                        else:
+                            user_profile.links = ""  # Set to empty string if no links or empty list
+                    
+                    if extracted_data.get('preferred_location'):
+                        user_profile.preferred_location = extracted_data.get('preferred_location')
+                    if extracted_data.get('testimonials'):
+                        user_profile.testimonials = extracted_data.get('testimonials')
+                    if extracted_data.get('expected_salary'):
+                        user_profile.expected_salary = extracted_data.get('expected_salary')
+                    
+                    # If name is extracted and user didn't provide one manually, use the extracted name
+                    if not name and extracted_data.get('name'):
+                        user_profile.full_name = extracted_data.get('name')
+                    
+                    # If email is extracted and user didn't provide one manually
+                    if not email and extracted_data.get('email') and extracted_data.get('email') != request.user.email:
+                        # Check if email is already in use
+                        if not User.objects.filter(email=extracted_data.get('email')).exists():
+                            request.user.email = extracted_data.get('email')
+                    
+                    messages.success(request, "Resume uploaded and data extracted successfully.")
+                except Exception as e:
+                    messages.warning(request, f"Resume uploaded but data extraction had issues: {str(e)}")
 
             if old_password and new_password:
                 if request.user.check_password(old_password):
@@ -429,18 +530,307 @@ def update_employee_profile(request):
                     return redirect('login')
                 else:
                     messages.error(request, "Incorrect old password.")
+                    # Return the form with the original data instead of redirecting
+                    return render(request, 'main/update_profile.html', {
+                        'user_profile': user_profile,
+                        'form_data': form_data
+                    })
+
+            # Before saving, make sure the data is properly formatted
+            if isinstance(user_profile.education, str) and (user_profile.education.startswith('[') and user_profile.education.endswith(']')):
+                user_profile.education = format_education(user_profile.education)
+                
+            # Final check for links to ensure empty links are truly empty
+            formatted_links = format_links(user_profile.links)
+            if not formatted_links:
+                user_profile.links = ""
+            else:
+                user_profile.links = formatted_links
+                
+            if isinstance(user_profile.experience_projects, str) and (user_profile.experience_projects.startswith('[') and user_profile.experience_projects.endswith(']')):
+                user_profile.experience_projects = format_experience_projects(user_profile.experience_projects)
 
             user_profile.save()
             request.user.save()
             messages.success(request, "Profile updated successfully.")
+            # Redirect to the same page after successful update
             return redirect('update_profile')
 
         except Exception as e:
             messages.error(request, f"An error occurred: {str(e)}")
-            return redirect('update_profile')
+            # Return the form with the original data instead of redirecting
+            return render(request, 'main/update_profile.html', {
+                'user_profile': user_profile,
+                'form_data': form_data
+            })
 
     return render(request, 'main/update_profile.html', {'user_profile': user_profile})
 
+
+import json
+import re
+import traceback
+from openai import OpenAI
+        
+def parse_resume(file):
+    """
+    Enhanced resume text extraction with better error handling
+    """
+    import PyPDF2
+    from docx import Document
+    import io
+    
+    content = ""
+    try:
+        # Create a copy of the file in memory to avoid file pointer issues
+        file_copy = io.BytesIO(file.read())
+        file.seek(0)  # Reset the file pointer
+        
+        if file.name.lower().endswith(".pdf"):
+            reader = PyPDF2.PdfReader(file_copy)
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    content += text + "\n"
+                    
+        elif file.name.lower().endswith(".docx"):
+            doc = Document(file_copy)
+            for paragraph in doc.paragraphs:
+                content += paragraph.text + "\n"
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        content += cell.text + " "
+                    content += "\n"
+        else:
+            raise ValueError(f"Unsupported file format: {file.name}")
+            
+        # Clean up the extracted text
+        content = content.replace("Internal", "")  # Remove watermarks
+        content = ' '.join(content.split())  # Normalize whitespace
+        
+    except Exception as e:
+        print(f"Error reading file {file.name}: {str(e)}")
+    
+    print(f"Extracted {len(content)} characters from resume")
+    return content
+
+def extract_data_from_resume(resume_text):
+    """
+    Extract structured data from resume text using OpenAI's API with gpt-3.5-turbo
+    to minimize token usage and costs.
+    """
+    import re
+    import json
+    from urllib.parse import urlparse
+
+    try:
+        # Get API key from settings
+        openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        if not openai_api_key:
+            print("OpenAI API key is not configured.")
+            return {}
+        
+        # Set up OpenAI client
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        
+        # Create a concise prompt to reduce token usage - Fixed the problematic formatting
+        prompt = """
+        Extract the following information from this professional resume as JSON. 
+        Be thorough and look for information across the entire document. 
+        Fields to extract:
+        - name: The candidate's full name (e.g., "John Doe")
+        - email: Email address (look for @ symbol, e.g., "example@email.com")
+        - contact_number: Phone number with country code if available (e.g., "+91-1234567890")
+        - skills: ALL technical skills mentioned (databases, languages, tools, platforms) as comma separated list
+        - links: Any LinkedIn, GitHub or other professional URLs as an array of objects with platform and url fields
+        - education: All education details including degrees, institutions, years
+        - experience_projects: Summary of work experience with companies and roles
+        - experience_years: Total years of professional experience as a number (e.g., 10)
+        - preferred_location: Current or preferred location if mentioned
+        - testimonials: Any testimonials or recommendations if present
+        - expected_salary: Expected salary if mentioned (number only)
+        
+        For the links field, return an array of objects with platform and url fields like:
+        [{"platform": "LinkedIn", "url": "https://linkedin.com/in/username"}]
+        IMPORTANT: If no links are found, return an empty array for 'links' field. DO NOT include objects with empty URLs.
+
+        For the given resume, do a thorough search and extract all information.
+        
+        Resume:
+        """ + resume_text
+        
+        # Increase token limit for more complete extraction
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an expert resume parser. Extract all relevant information completely and accurately."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,  # Lower temperature for consistency
+            max_tokens=1000  # Increased token limit
+        )
+        
+        # Parse the JSON response
+        print("OpenAI Response:", response.choices[0].message.content)
+        text = (response.choices[0].message.content)
+        clean_text = re.sub(r"```(?:json|python)?\n?", "", text).strip()
+        clean_text = clean_text.replace("```", "").strip()
+        # print("result2=======",clean_text)
+        # print("type=============",type(response.choices[0].message.content))
+        result = json.loads(clean_text)
+        
+        # Ensure all expected fields are present
+        expected_fields = ["name", "email", "contact_number", "skills", "links", "education", 
+                          "experience_projects", "experience_years", "preferred_location", 
+                          "testimonials", "expected_salary"]
+        
+        for field in expected_fields:
+            if field not in result:
+                result[field] = "" if field != "experience_years" and field != "expected_salary" and field != "links" else 0 if field != "links" else []
+                
+        # Convert numeric fields to proper types
+        try:
+            if result["experience_years"] and not isinstance(result["experience_years"], int):
+                result["experience_years"] = int(float(str(result["experience_years"]).replace(',', '')))
+        except (ValueError, TypeError):
+            result["experience_years"] = 0
+            
+        try:
+            if result["expected_salary"] and not isinstance(result["expected_salary"], int):
+                # Handle potential currency symbols or 'k' suffix
+                salary_str = str(result["expected_salary"]).replace(',', '')
+                # Remove non-numeric characters except decimal point
+                salary_str = ''.join(c for c in salary_str if c.isdigit() or c == '.')
+                if salary_str:
+                    # Check for 'k' notation in the original string
+                    if 'k' in str(result["expected_salary"]).lower():
+                        result["expected_salary"] = int(float(salary_str) * 1000)
+                    else:
+                        result["expected_salary"] = int(float(salary_str))
+        except (ValueError, TypeError):
+            result["expected_salary"] = 0
+
+        # Add a fallback URL scanner if links are empty or malformed
+        # First ensure links is a list
+        if not isinstance(result["links"], list):
+            result["links"] = []
+            
+        # Only scan for links if the list is empty
+        if len(result["links"]) == 0:
+            # Look for common professional URLs in the resume text
+            linkedin_pattern = r'linkedin\.com/\S+'
+            github_pattern = r'github\.com/\S+'
+            website_pattern = r'https?://(?!linkedin\.com|github\.com)(?:[-\w.]|(?:%[\da-fA-F]{2}))+[/\w\.-]*'
+            
+            found_links = []
+            
+            # Find LinkedIn profiles
+            linkedin_matches = re.findall(linkedin_pattern, resume_text, re.IGNORECASE)
+            for match in linkedin_matches:
+                url = match if match.startswith('http') else f"https://{match}"
+                found_links.append({"platform": "LinkedIn", "url": url})
+            
+            # Find GitHub profiles
+            github_matches = re.findall(github_pattern, resume_text, re.IGNORECASE)
+            for match in github_matches:
+                url = match if match.startswith('http') else f"https://{match}"
+                found_links.append({"platform": "GitHub", "url": url})
+            
+            # Find other websites
+            website_matches = re.findall(website_pattern, resume_text, re.IGNORECASE)
+            for match in website_matches:
+                parsed_url = urlparse(match)
+                domain = parsed_url.netloc.replace('www.', '')
+                platform = domain.split('.')[0].capitalize()
+                found_links.append({"platform": platform, "url": match})
+            
+            # Only assign found_links if we actually found some links
+            if found_links:
+                result["links"] = found_links
+        
+        # Clean up the links list to remove any objects with empty URLs
+        if isinstance(result["links"], list):
+            result["links"] = [link for link in result["links"] if link.get("url") and link.get("url").strip()]
+            
+            # Check if any platform has an empty URL, and if so, remove it from the links list
+            for link in result["links"]:
+                if not link.get("url") or not link.get("url").strip():
+                    result["links"].remove(link)
+        
+        print("Extracted data:", result)
+        return result
+        
+    except Exception as e:
+        print(f"Error in OpenAI resume parsing: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Return empty values as fallback
+        return {
+            "name": "",
+            "email": "",
+            "contact_number": "",
+            "skills": "",
+            "links": [],  # Empty array, not objects with empty URLs
+            "education": "",
+            "experience_projects": "",
+            "experience_years": 0,
+            "preferred_location": "",
+            "testimonials": "",
+            "expected_salary": 0
+        }
+        
+def post_process_result(result):
+    """Format and clean up extracted data for better display"""
+    # Handle expected_salary
+    if isinstance(result["expected_salary"], str):
+        try:
+            import re
+            digits = re.sub(r'[^\d.]', '', result["expected_salary"])
+            if digits:
+                if 'k' in result["expected_salary"].lower():
+                    result["expected_salary"] = int(float(digits) * 1000)
+                else:
+                    result["expected_salary"] = int(float(digits))
+            else:
+                result["expected_salary"] = 0
+        except (ValueError, TypeError):
+            result["expected_salary"] = 0
+    elif result["expected_salary"] is None:
+        result["expected_salary"] = 0
+    
+    # Convert None values to appropriate defaults
+    for key in result:
+        if result[key] is None:
+            if key in ["experience_years", "expected_salary"]:
+                result[key] = 0
+            elif isinstance(result[key], list):
+                result[key] = []  # Empty list
+            else:
+                result[key] = ""
+    
+    # Ensure experience_years is an integer
+    if isinstance(result["experience_years"], str):
+        try:
+            import re
+            years_text = re.sub(r'[^\d.]', '', result["experience_years"])
+            if years_text:
+                result["experience_years"] = int(float(years_text))
+            else:
+                result["experience_years"] = 0
+        except (ValueError, TypeError):
+            result["experience_years"] = 0
+    elif isinstance(result["experience_years"], (int, float)):
+        result["experience_years"] = int(result["experience_years"])
+    else:
+        result["experience_years"] = 0
+    
+    # Format data fields without HTML tags
+    result["links"] = format_links(result["links"])
+    result["education"] = format_education(result["education"])
+    result["experience_projects"] = format_experience_projects(result["experience_projects"])
+    
+    return result
 
 @login_required
 @employer_required
@@ -612,96 +1002,6 @@ def job_detail(request, job_id):
     job = get_object_or_404(Job, id=job_id)
     return render(request, 'main/job_detail.html', {'job': job})
 
-import spacy
-
-nlp = spacy.load("en_core_web_sm")
-
-def parse_resume(file):
-    """
-    Extract text content from a resume file (PDF or DOCX).
-    """
-    import PyPDF2
-    from docx import Document
-
-    content = ""
-    try:
-        if file.name.endswith(".pdf"):
-            reader = PyPDF2.PdfReader(file)
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    content += text + "\n"
-        elif file.name.endswith(".docx"):
-            doc = Document(file)
-            for paragraph in doc.paragraphs:
-                content += paragraph.text + "\n"
-        else:
-            raise ValueError("Unsupported file format")
-    except Exception as e:
-        print(f"Error reading file: {e}")
-    print("Extracted Resume Text:\n", content)  # Log extracted text
-    return content
-
-
-def extract_data_from_resume(resume_text):
-    """
-    Extract structured data from resume text using refined regex patterns.
-    """
-    import re
-
-    data = {
-        "name": "",
-        "email": "",
-        "contact_number": "",
-        "skills": "",
-        "links": "",
-        "education": "",
-        "experience_projects": "",
-        "experience_years": "",
-    }
-
-    # Extract Name
-    name_match = re.search(r"Name:\s*([^\n]+)", resume_text)
-    data["name"] = name_match.group(1).strip() if name_match else ""
-
-    # Extract Email
-    email_match = re.search(r"Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", resume_text)
-    data["email"] = email_match.group(1).strip() if email_match else ""
-
-    # Extract Contact Number
-    contact_match = re.search(r"Contact No:\s*([^\n]+)", resume_text)
-    data["contact_number"] = contact_match.group(1).strip() if contact_match else ""
-
-    # Extract Skills
-    skills_match = re.search(r"Skills:\s*((?:- [^\n]+\n)+)", resume_text)
-    if skills_match:
-        skills = re.findall(r"- ([^\n]+)", skills_match.group(1))
-        data["skills"] = ", ".join(skills)
-
-    # Extract Links (specific pattern: label followed by a URL)
-    links_match = re.search(r"Links:\s*((?:[^\n:]+:\s*https?://[^\n]+\n)+)", resume_text)
-    if links_match:
-        links = re.findall(r"([^\n:]+:\s*https?://[^\n]+)", links_match.group(1))
-        data["links"] = ", ".join(link.strip() for link in links)
-
-    # Extract Education
-    education_match = re.search(r"Education:\s*((?:- [^\n]+\n)+)", resume_text)
-    if education_match:
-        education = re.findall(r"- ([^\n]+)", education_match.group(1))
-        data["education"] = "; ".join(education)
-
-    # Extract Experience in Years
-    experience_years_match = re.search(r"Experience in Years:\s*(\d+)", resume_text)
-    data["experience_years"] = int(experience_years_match.group(1)) if experience_years_match else 0
-
-    # Extract Experience/Projects (multi-line structured data)
-    experience_projects_match = re.search(r"Experience / Projects:\s*((?:.+\n)+)", resume_text)
-    if experience_projects_match:
-        projects = experience_projects_match.group(1).strip().split("\n")
-        cleaned_projects = [line.strip() for line in projects if line.strip()]
-        data["experience_projects"] = "; ".join(cleaned_projects)
-
-    return data
 
 from django.http import JsonResponse
 
@@ -882,7 +1182,7 @@ def view_employer_compatibility(request, company, user_id):
         }
 
         resume_details = {
-            "education": user_profile.education or "Not Specified",
+            "education": format_education(user_profile.education) or "Not Specified",
             "experience_years": user_profile.experience_years or 0,
             "skills": [skill.strip() for skill in (user_profile.skills or "").split(",") if skill.strip()] or ["Not Specified"]
         }
@@ -1100,7 +1400,6 @@ def get_url_safe_job_name(company_name):
     return company_name.replace(' ', '-').replace(',', 'comma').replace('.', 'period')
 
 
-
 @login_required
 @employee_required
 def view_employee_compatibility_report(request, job_name):
@@ -1175,8 +1474,6 @@ def view_employee_compatibility_report(request, job_name):
     except Exception as e:
         logger.error(f"Error in view_employee_compatibility_report: {e}")
         return render(request, 'main/error.html', {"error_message": str(e)})
-
-
 
 from django.utils.text import slugify
 
@@ -1608,7 +1905,6 @@ def extract_text_from_file(file):
         return ''
 
 # Updated employee_compatibility view function
-
 @login_required
 def employee_compatibility(request):
     context = {}
@@ -1680,7 +1976,7 @@ def employee_compatibility(request):
                 # Add resume name to the report - use semantic HTML5 for better PDF rendering
                 compatibility_reports.append(f"<div class='report-section mb-5'><h3 class='mt-4 mb-3'>Analysis for Resume {i}: {resume_name}</h3>")
                 
-                # Updated prompt to use bullet points for specified sections
+                # Updated prompt to include Skills and Experience Compatibility Scores
                 prompt = f"""Perform a detailed compatibility analysis between the following job description and resume:
 
 Job Description:
@@ -1691,17 +1987,27 @@ Resume {i} ({resume_name}):
 
 Provide a comprehensive analysis with the following details:
 1. Overall Compatibility Score (0-100%)
-2. Skills Match Analysis - List skills match points as bullet points (at least 3-4 bullets)
-3. Experience Relevance - List experience relevance as bullet points (at least 3-4 bullets)
-4. Key Strengths - List at least 3 key strengths
-5. Potential Gaps - List any potential gaps
-6. Recommendation - List recommendations as bullet points (at least 3-4 bullets)
+2. Skills Compatibility Score (0-100%)
+3. Experience Compatibility Score (0-100%)
+4. Skills Match Analysis - List skills match points as bullet points (at least 3-4 bullets)
+5. Experience Relevance - List experience relevance as bullet points (at least 3-4 bullets)
+6. Key Strengths - List at least 3 key strengths
+7. Potential Gaps - List any potential gaps
+8. Recommendation - List recommendations as bullet points (at least 3-4 bullets)
 
 Format the response using this exact HTML structure:
 <table class="table table-bordered table-striped">
   <tbody>
     <tr>
       <th width="25%">Overall Compatibility Score</th>
+      <td><strong>XX%</strong></td>
+    </tr>
+    <tr>
+      <th width="25%">Skills Compatibility Score</th>
+      <td><strong>XX%</strong></td>
+    </tr>
+    <tr>
+      <th width="25%">Experience Compatibility Score</th>
       <td><strong>XX%</strong></td>
     </tr>
     <tr>
@@ -1807,70 +2113,3 @@ Do not modify this table structure. Keep all <th> and <td> elements exactly as s
             messages.error(request, f"Error generating compatibility report: {str(e)}")
     
     return render(request, 'main/employee_compatibility.html', context)
-
-    
-# @login_required
-# def download_compatibility_report(request):
-#     # Retrieve reports from session
-#     reports = request.session.get('compatibility_reports', [])
-    
-#     if not reports:
-#         return HttpResponse("No compatibility reports available.", status=404)
-    
-#     # Generate PDF
-#     from reportlab.lib.pagesizes import letter
-#     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-#     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-#     from reportlab.lib.enums import TA_JUSTIFY
-#     from reportlab.lib.units import inch
-    
-#     # Create a temporary file for the PDF
-#     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
-#         doc = SimpleDocTemplate(temp_pdf.name, pagesize=letter,
-#                                 rightMargin=72, leftMargin=72,
-#                                 topMargin=72, bottomMargin=18)
-#         styles = getSampleStyleSheet()
-        
-#         # Custom style for better readability
-#         body_style = ParagraphStyle(
-#             name='Justify',
-#             parent=styles['Normal'],
-#             alignment=TA_JUSTIFY,
-#             fontSize=10,
-#             leading=12,
-#             spaceBefore=6,
-#             spaceAfter=6
-#         )
-        
-#         # Prepare content
-#         story = []
-#         story.append(Paragraph("Employee Compatibility Report", styles['Title']))
-#         story.append(Spacer(1, 12))
-        
-#         for i, report in enumerate(reports, 1):
-#             story.append(Paragraph(f"Compatibility Report for Candidate {i}", styles['Heading2']))
-#             story.append(Spacer(1, 6))
-            
-#             # For HTML reports, strip HTML tags
-#             import re
-#             clean_report = re.sub('<[^<]+?>', '', report)
-            
-#             # Split report into paragraphs
-#             paragraphs = clean_report.split('\n\n')
-#             for para in paragraphs:
-#                 story.append(Paragraph(para.strip(), body_style))
-            
-#             story.append(Spacer(1, 12))
-        
-#         # Build PDF
-#         doc.build(story)
-    
-#     # Serve the PDF
-#     with open(temp_pdf.name, 'rb') as pdf:
-#         response = HttpResponse(pdf.read(), content_type='application/pdf')
-#         response['Content-Disposition'] = 'attachment; filename="compatibility_report.pdf"'
-    
-#     # Clean up temporary file
-#     os.unlink(temp_pdf.name)
-    
-#     return response

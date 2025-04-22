@@ -5,6 +5,31 @@
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh; margin-top: 60px;">
     <div class="card shadow p-4" style="width: 100%; max-width: 500px;">
         <h2 class="text-center mb-4">Employer Registration</h2>
+        
+        <!-- Message Display Area -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Registration Status -->
+        {% if registration_success %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            Employer registration successful. Please log in.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <script>
+            // Redirect to login page after 5 seconds
+            setTimeout(function() {
+                window.location.href = "{% url 'login' %}";
+            }, 5000);
+        </script>
+        {% endif %}
+        
         <form method="POST" action="">
             {% csrf_token %}
             <div class="mb-3">
@@ -19,6 +44,9 @@
                 <label for="company_name" class="form-label">Company Name</label>
                 <input type="text" name="company_name" id="company_name" class="form-control" required
                        value="{{ form.company_name.value|default:'' }}">
+                {% if form.company_name.errors %}
+                    <div class="text-danger">{{ form.company_name.errors|striptags }}</div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
@@ -40,6 +68,9 @@
                 <label for="company_location" class="form-label">Company Location</label>
                 <input type="text" name="company_location" id="company_location" class="form-control" required
                        value="{{ form.company_location.value|default:'' }}">
+                {% if form.company_location.errors %}
+                    <div class="text-danger">{{ form.company_location.errors|striptags }}</div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>

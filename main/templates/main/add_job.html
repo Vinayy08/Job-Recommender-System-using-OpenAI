@@ -5,15 +5,15 @@
 
 {% block content %}
 <div class="container my-5">
-    <!-- Trigger Bootstrap Toast for messages -->
+    <!-- Improved Bootstrap Toast for messages -->
     {% if messages %}
     <div aria-live="polite" aria-atomic="true" class="position-relative">
         <div class="toast-container position-fixed top-0 end-0 p-3">
             {% for message in messages %}
-            <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
-                <div class="toast-header">
-                    <strong class="me-auto">Notification</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+                <div class="toast-header {% if message.tags == 'success' %}bg-success text-white{% elif message.tags == 'error' %}bg-danger text-white{% endif %}">
+                    <strong class="me-auto">{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% else %}Notification{% endif %}</strong>
+                    <button type="button" class="btn-close {% if message.tags == 'success' or message.tags == 'error' %}btn-close-white{% endif %}" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body">
                     {{ message }}
@@ -23,6 +23,18 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Display Fixed Alert Messages for better visibility -->
+    <div class="mb-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
 
     <div class="card shadow-lg">
         <div class="card-header text-center bg-primary text-white">
@@ -57,10 +69,21 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-      var toastElList = [].slice.call(document.querySelectorAll('.toast'))
-      var toastList = toastElList.map(function(toastEl) {
-          return new bootstrap.Toast(toastEl).show();
+  document.addEventListener('DOMContentLoaded', function() {
+      // Add show class to make sure toasts are visible
+      var toastElList = document.querySelectorAll('.toast');
+      toastElList.forEach(function(toastEl) {
+          // Make sure Bootstrap is loaded before trying to initialize toasts
+          if (typeof bootstrap !== 'undefined') {
+              var toast = new bootstrap.Toast(toastEl, {
+                  autohide: true,
+                  delay: 7000  // Increased to 7 seconds for better readability
+              });
+              toast.show();
+          } else {
+              // Fallback if Bootstrap JS is not loaded
+              toastEl.classList.add('show');
+          }
       });
   });
 </script>

@@ -25,95 +25,161 @@
 
                 <!-- Button Group -->
                 <style>
-                    .dashboard-btn {
-                        font-weight: 600;
-                        padding: 0.8rem 1.2rem;
-                        border-radius: 0.75rem;
-                        transition: all 0.3s ease;
-                        flex: 1;
-                        min-width: 200px;
-                        max-width: 220px;
+                    .action-buttons-container {
                         display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        text-align: center;
-                        gap: 0.5rem;
-                        height: 100px;
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                    }
-                    
-                    .dashboard-btn:hover {
-                        transform: translateY(-3px);
-                        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-                    }
-                    
-                    .dashboard-btn i {
-                        font-size: 1.5rem;
-                        margin-bottom: 0.25rem;
-                    }
-                    
-                    .btn-container {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                        gap: 1rem;
+                        flex-wrap: wrap;
+                        gap: 14px;
                         justify-content: center;
                         margin-bottom: 2rem;
                     }
-                    
-                    @media (min-width: 992px) {
-                        .btn-container {
-                            grid-template-columns: repeat(5, 1fr);
-                        }
+
+                    .action-button {
+                        flex: 0 0 auto;
+                        width: calc(25% - 11px);
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        transition: all 0.2s ease;
+                        border: none;
+                        position: relative;
                     }
-                    
-                    @media (max-width: 991px) {
-                        .btn-container {
-                            grid-template-columns: repeat(3, 1fr);
-                        }
+
+                    .action-button:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
                     }
-                    
-                    @media (max-width: 576px) {
-                        .btn-container {
-                            grid-template-columns: repeat(2, 1fr);
+
+                    .action-button a {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        padding: 16px 18px;
+                        color: white;
+                        text-decoration: none;
+                        font-weight: 700;
+                        height: 100%;
+                        font-size: 16px;
+                        letter-spacing: 0.3px;
+                        text-align: center;
+                    }
+
+                    /* Hide empty icon elements if they're not displaying properly */
+                    .action-button i:empty {
+                        display: none;
+                    }
+
+                    .action-button i {
+                        margin-right: 8px;
+                        font-size: 20px;
+                    }
+
+                    /* Professional color palette */
+                    .bg-post-job {
+                        background: #4F46E5;
+                    }
+
+                    .bg-upload {
+                        background: #059669;
+                    }
+
+                    .bg-compatibility {
+                        background: #7C3AED;
+                    }
+
+                    .bg-report {
+                        background: #0D9488;
+                    }
+
+                    .bg-profiles {
+                        background: #2563EB;
+                    }
+
+                    .bg-applications {
+                        background: #0891B2;
+                    }
+
+                    .bg-ai {
+                        background: #EA580C;
+                    }
+
+                    @media (max-width: 1200px) {
+                        .action-button {
+                            width: calc(33.33% - 10px);
                         }
                         
-                        .dashboard-btn {
-                            min-width: unset;
+                        .action-button a {
+                            padding: 14px 16px;
+                        }
+                    }
+
+                    @media (max-width: 992px) {
+                        .action-button {
+                            width: calc(50% - 7px);
+                        }
+                    }
+
+                    @media (max-width: 576px) {
+                        .action-button {
                             width: 100%;
+                        }
+                        
+                        .action-button a {
+                            padding: 14px 20px;
                         }
                     }
                 </style>
 
-                <div class="btn-container">
-                    <a href="{% url 'add_job' %}" class="dashboard-btn btn btn-primary">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>Post a New Job</span>
-                    </a>
-                    <a href="{% url 'upload_csv' %}" class="dashboard-btn btn btn-info">
-                        <i class="bi bi-cloud-upload"></i>
-                        <span>Upload Job Listings</span>
-                    </a>
-                    <a href="{% url 'employee_compatibility' %}" class="dashboard-btn btn btn-primary">
-                        <i class="bi bi-people-fill"></i>
-                        <span>Check Compatibility</span>
-                    </a>
-                    <a href="{% url 'generate_compatibility_report' %}" class="dashboard-btn btn btn-success">
-                        <i class="bi bi-graph-up"></i>
-                        <span>Compatibility Report</span>
-                    </a>
-                    <a href="{% url 'view_employee_profiles' %}" class="dashboard-btn btn btn-secondary">
-                        <i class="bi bi-people"></i>
-                        <span>Employee Profiles</span>
-                    </a>
-                    <a href="{% url 'view_all_applications' %}" class="dashboard-btn btn btn-info">
-                        <i class="bi bi-list-check"></i>
-                        <span>All Applications</span>
-                    </a>
-                    <a href="{% url 'employer_side_openaiCS' %}" class="dashboard-btn btn btn-warning">
-                        <i class="bi bi-magic"></i>
-                        <span>AI Compatibility</span>
-                    </a>
+                <div class="action-buttons-container">
+                    <div class="action-button">
+                        <a href="{% url 'add_job' %}" class="bg-post-job">
+                            <i class="bi bi-plus-circle"></i>
+                            Post a New Job
+                        </a>
+                    </div>
+                    
+                    <div class="action-button">
+                        <a href="{% url 'upload_csv' %}" class="bg-upload">
+                            <i class="bi bi-cloud-upload"></i>
+                            Upload Job Listings via CSV
+                        </a>
+                    </div>
+                    
+                    <div class="action-button">
+                        <a href="{% url 'employee_compatibility' %}" class="bg-compatibility">
+                            <i class="bi bi-people-fill"></i>
+                            Check Candidate Compatibility 
+                        </a>
+                    </div>
+                    
+                    <div class="action-button">
+                        <a href="{% url 'generate_compatibility_report' %}" class="bg-report">
+                            <i class="bi bi-graph-up"></i>
+                            Candidate Compatibility Report 
+                        </a>
+                    </div>
+                    
+                    <div class="action-button">
+                        <a href="{% url 'view_employee_profiles' %}" class="bg-profiles">
+                            <i class="bi bi-people"></i>
+                            View Employee Profiles
+                        </a>
+                    </div>
+                    
+                    <div class="action-button">
+                        <a href="{% url 'view_all_applications' %}" class="bg-applications">
+                            <i class="bi bi-list-check"></i>
+                            View All Applications
+                        </a>
+                    </div>
+                    
+                    {% comment %}
+                    <div class="action-button">
+                        <a href="{% url 'employer_side_openaiCS' %}" class="bg-ai">
+                            <i class="bi bi-magic"></i>
+                            Compatibility Report using AI
+                        </a>
+                    </div>
+                    {% endcomment %}
                 </div>
 
                 <!-- Search Bar -->

@@ -4,13 +4,17 @@
 {% block content %}
 <div class="container mt-5">
     <div class="text-center">
-        <h1 class="mb-4" style="font-weight: 600; color: #000000;">Welcome, {{ full_name }}!</h1>
-        <p style="font-size: 1.1rem; color: #262729;">This is your personalized employee home page.</p>
+        <h1 class="mb-4" style="font-weight: 600; color: 
+#000000;">Welcome, {{ full_name }}!</h1>
+        <p style="font-size: 1.1rem; color: 
+#262729;">This is your personalized employee home page.</p>
     </div>
 
-    <div class="card mx-auto mt-4" style="max-width: 600px; background-color: #f8f9fa; border-radius: 10px;">
+    <div class="card mx-auto mt-4" style="max-width: 600px; background-color: 
+#f8f9fa; border-radius: 10px;">
         <div class="card-body">
-            <h3 class="card-title text-center" style="font-weight: 600; color: #4b6584;">Your Details</h3>
+            <h3 class="card-title text-center" style="font-weight: 600; color: 
+#4b6584;">Your Details</h3>
             <ul class="list-group list-group-flush mt-3">
                 <li class="list-group-item">
                     <strong>Name:</strong> {{ full_name }}
@@ -25,13 +29,20 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-center gap-3 my-4">
-        <a href="{% url 'employee_dashboard' %}" class="btn btn-outline-primary btn-lg">
+    <div class="d-flex justify-content-center gap-3 my-5">
+        <a href="{% url 'employee_dashboard' %}" class="btn btn-primary px-4 py-2" style="border-radius: 8px; font-weight: 500; box-shadow: 0 2px 5px rgba(52, 152, 219, 0.2); transition: all 0.3s ease;">
             Go to Dashboard
         </a>
-        <a href="{% url 'view_employee_applications' %}" class="btn btn-outline-success btn-lg">
+        <a href="{% url 'view_employee_applications' %}" class="btn btn-success px-4 py-2" style="border-radius: 8px; font-weight: 500; box-shadow: 0 2px 5px rgba(46, 204, 113, 0.2); transition: all 0.3s ease;">
             View My Applications
         </a>
     </div>
 </div>
+
+<style>
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+</style>
 {% endblock %}

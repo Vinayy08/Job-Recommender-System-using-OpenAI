@@ -70,20 +70,65 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin
 2. Create a virtual environment and activate it:
    python -m venv venv
    
-#On Windows: venv\Scripts\activate
+   #On Windows: venv\Scripts\activate
    
-#On Mac: source venv/bin/activate  
+   #On Mac: source venv/bin/activate
+
 3. Install dependencies: pip install -r requirements.txt
+4.  Install Tesseract OCR
+If you haven't installed Tesseract OCR itself, you'll need to do that first. pytesseract is just a wrapper and requires the actual Tesseract software to function.
 
-  or 
+For Windows:
+Download the Tesseract executable from this link.
+https://github.com/UB-Mannheim/tesseract/wiki
 
-   pip install django matplotlib seaborn openai xhtml2pdf Pillow django-widget-tweaks scikit-learn spacy PyPDF2 python-docx fuzzywuzzy python-Levenshtein
+Install it and note the installation directory (e.g., C:\Program Files\Tesseract-OCR).
 
-   python -m spacy download en_core_web_sm
+For macOS:
+You can install Tesseract using Homebrew with the following command:
 
-4. Apply database migrations:
+bash
+
+brew install tesseract
+For Linux:
+You can install Tesseract using the package manager. For example, on Ubuntu:
+bash
+
+sudo apt update
+sudo apt install tesseract-ocr
+2. Add Tesseract to PATH
+Once Tesseract is installed, you need to ensure it's in your system's PATH so that pytesseract can find it.
+
+For Windows:
+You can add Tesseract to your PATH manually:
+
+Right-click on 'This PC' or 'My Computer' and select 'Properties'.
+
+Click on 'Advanced system settings' and then 'Environment Variables'.
+
+In the 'System variables' section, find the 'Path' variable and click 'Edit'.
+
+Add the path to your Tesseract installation (e.g., C:\Program Files\Tesseract-OCR).
+
+Click 'OK' to close all dialogs.
+
+For macOS and Linux:
+Generally, if installed via Homebrew or package manager, it should automatically be added to your PATH. You can verify by running tesseract --version in the terminal.
+
+3. Configure pytesseract in Django
+In your Django application, ensure that pytesseract is configured to find the Tesseract executable. You might need to explicitly set the path in your Django settings or wherever you're using pytesseract.
+
+For example, you can specify the path in your Python code like this:
+
+python
+
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Update this path as per your installation
+
+5. Apply database migrations:
    python manage.py makemigrations
-   python manage.py migrate
+python manage.py migrate
+
    
 6. Run the development server: python manage.py runserver
    

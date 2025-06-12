@@ -69,8 +69,10 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin
    cd job_recommender
 2. Create a virtual environment and activate it:
    python -m venv venv
-   #On Windows: venv\Scripts\activate
-   #On Mac: source venv/bin/activate  
+   
+#On Windows: venv\Scripts\activate
+   
+#On Mac: source venv/bin/activate  
 3. Install dependencies: pip install -r requirements.txt
 
   or 
